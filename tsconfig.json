@@ -3,10 +3,12 @@
     "target": "esnext",
     "module": "esnext",
     "strict": true,
+    "strictNullChecks": false,
     "jsx": "preserve",
     "importHelpers": true,
     "moduleResolution": "node",
     "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "sourceMap": true,
@@ -14,6 +16,10 @@
     "types": [
       "webpack-env",
       "jest"
+    ],
+    "typeRoots": [
+      "./src",
+      "./node_modules/@types"
     ],
     "paths": {
       "@/*": [

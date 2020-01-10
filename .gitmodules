@@ -1,0 +1,3 @@
+[submodule "src/lib/common"]
+	path = src/lib/common
+	url = git@github.com:3AHAT0P/ProjectY.git
