@@ -1,8 +1,7 @@
 import buildEvent from '@/utils/build-event';
 import Point from '@/utils/point';
-import Cursor from '@/utils/cursor';
 
-import CustomCanvas from '../canvas';
+import Canvas from '../canvas';
 
 const _onMouseMoveHandler = Symbol('_onMouseMoveHandler');
 const _onMouseOutHandler = Symbol('_onMouseOutHandler');
@@ -15,9 +14,9 @@ export const FOREGROUND_LAYER = '1';
 
 export type LAYER_INDEX = '-1' | '0' | '1';
 
-const TileableCanvasMixin = (BaseClass: any = CustomCanvas) => {
-  if (!(BaseClass === CustomCanvas || CustomCanvas.isPrototypeOf(BaseClass))) {
-    throw new Error('BaseClass isn\'t prototype of CustomCanvas!');
+const TileableCanvasMixin = (BaseClass = Canvas) => {
+  if (!(BaseClass === Canvas || Canvas.isPrototypeOf(BaseClass))) {
+    throw new Error('BaseClass isn\'t prototype of Canvas!');
   }
 
   class TileableCanvas extends BaseClass {
@@ -179,7 +178,8 @@ const TileableCanvasMixin = (BaseClass: any = CustomCanvas) => {
     protected _resize(multiplier: number) {
       this._tileSize.x *= multiplier;
       this._tileSize.y *= multiplier;
-      if (super._resize) super._resize(multiplier);
+      // @ts-ignore
+      if (super._resize != null) super._resize(multiplier);
       this._renderInNextFrame();
     }
 
@@ -203,6 +203,11 @@ const TileableCanvasMixin = (BaseClass: any = CustomCanvas) => {
 
     public async updateCurrentTiles(tiles: Map<string, ImageBitmap>) {
       this._tiles = tiles;
+    }
+
+    updateSize(width: number, height: number) {
+      super.updateSize(width, height);
+      this._calcGrid();
     }
   }
 

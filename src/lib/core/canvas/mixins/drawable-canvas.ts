@@ -42,7 +42,8 @@ const DrawableCanvasMixin = (BaseClass: typeof TileableCanvas = TileableCanvas) 
     _cursor = new Cursor(this._el, { offset: { x: 8, y: 8 } });
 
     [_onMouseDownHandler](event: MouseEvent) {
-      if (event.metaKey) return;
+      // @TODO improve it!!!
+      if (event.metaKey || event.ctrlKey) return;
       this._startDraw(event);
       this._updateTilePlace(...this._transformEventCoordsToGridCoords(event.offsetX, event.offsetY));
       this._renderInNextFrame();
@@ -65,7 +66,7 @@ const DrawableCanvasMixin = (BaseClass: typeof TileableCanvas = TileableCanvas) 
     }
 
     _startDraw(event: MouseEvent) {
-      if (this.tile == null && this.tiles == null) return;
+      if (this.tiles == null) return;
 
       this._drawState = true;
       if (event.button === 0) this._drawType = DRAW_STATE_ENAM.DRAW;
@@ -74,16 +75,13 @@ const DrawableCanvasMixin = (BaseClass: typeof TileableCanvas = TileableCanvas) 
     }
 
     _updateTilePlace(x: number, y: number, z: LAYER_INDEX = ZERO_LAYER) {
-      if (this.tile == null && this.tiles == null) return;
+      if (this.tiles == null) return;
 
       if (this._drawType === DRAW_STATE_ENAM.ERASE) this._updateTileByCoord(x, y, z, null);
       else if (this._drawType === DRAW_STATE_ENAM.DRAW) {
-        if (this.tile != null) this._updateTileByCoord(x, y, z, this.tile);
-        else {
-          for (const [place, tile] of this.tiles.entries()) {
-            const [_y, _x] = place.split('|');
-            this._updateTileByCoord(x + Number(_x), y + Number(_y), z, tile);
-          }
+        for (const [place, tile] of this.tiles.entries()) {
+          const [_y, _x] = Point.fromString(place).toArray();
+          this._updateTileByCoord(x + _x, y + _y, z, tile);
         }
       }
     }

@@ -10,10 +10,12 @@ import buildEvent from '@/utils/build-event';
   );
  */
 export default class Canvas extends EventTarget {
-  public static async create(...args: any[]) {
+  public static _metaClassNames: Symbol[] = [];
+
+  public static async create<T extends Canvas>(...args: any[]): Promise<T> {
     const instance = new this(...args);
     await instance.init();
-    return instance;
+    return <T>instance;
   }
 
   protected _el: HTMLCanvasElement = null;
@@ -48,14 +50,14 @@ export default class Canvas extends EventTarget {
 
   async init() {
     Reflect.set(this._el.style, 'image-rendering', 'pixelated');
-    this.el.append(this._el);
+    // this.el.append(this._el);
 
     await this._initListeners();
 
     this._renderInNextFrame();
   }
 
-  async _initListeners() {
+  protected async _initListeners() {
     this.addEventListener(':renderRequest', this._renderInNextFrame, { passive: true });
   }
 

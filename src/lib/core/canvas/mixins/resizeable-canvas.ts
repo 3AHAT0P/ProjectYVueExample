@@ -9,8 +9,10 @@ const _onContextMenuHandler = Symbol('_onContextMenuHandler');
 /*
   @TODO Example
  */
-const ResizeableCanvasMixin = (BaseClass: any = Canvas) => {
-  if (!(BaseClass === Canvas || Canvas.isPrototypeOf(BaseClass))) throw new Error('BaseClass isn\'t prototype of Canvas!');
+const ResizeableCanvasMixin = (BaseClass = Canvas) => {
+  if (!(BaseClass === Canvas || Canvas.isPrototypeOf(BaseClass))) {
+    throw new Error('BaseClass isn\'t prototype of Canvas!');
+  }
 
   class ResizeableCanvas extends BaseClass {
     private _sizeMultiplier = 1;
@@ -38,6 +40,7 @@ const ResizeableCanvasMixin = (BaseClass: any = Canvas) => {
     protected _resize(multiplier: number) {
       this._sizeMultiplier *= multiplier;
       this.updateSize(this._el.width * multiplier, this._el.height * multiplier);
+      // @ts-ignore
       if (super._resize instanceof Function) super._resize(multiplier);
     }
 

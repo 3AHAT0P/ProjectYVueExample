@@ -17,6 +17,7 @@ module.exports = {
     'no-prototype-builtins': 'off',
     'class-methods-use-this': 'off',
     'arrow-parens': 'off',
+    'arrow-body-style': 'off',
     'max-len': ['error', 120],
   },
   parserOptions: {
