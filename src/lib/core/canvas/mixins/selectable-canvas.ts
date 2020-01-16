@@ -1,4 +1,4 @@
-import buildEvent from '@/utils/build-event';
+import buildEvent from '@/lib/core/utils/build-event';
 
 import Canvas from '../canvas';
 

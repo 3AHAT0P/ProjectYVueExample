@@ -1,6 +1,6 @@
 import throttle from 'lodash/throttle';
 
-import buildEvent from '@/utils/build-event';
+import buildEvent from '@/lib/core/utils/build-event';
 
 /*
   const canvas = await Canvas.create({ el: document.body, size: { width: 64, height: 64 } });
@@ -42,6 +42,10 @@ export default class Canvas extends EventTarget {
     super();
 
     this._el = options.el;
+    if (options.size != null) {
+      this._el.width = options.size.width;
+      this._el.height = options.size.height;
+    }
     this._ctx = this._el.getContext('2d');
 
     this._render = throttle(this._render.bind(this), 16);
@@ -50,7 +54,6 @@ export default class Canvas extends EventTarget {
 
   async init() {
     Reflect.set(this._el.style, 'image-rendering', 'pixelated');
-    // this.el.append(this._el);
 
     await this._initListeners();
 

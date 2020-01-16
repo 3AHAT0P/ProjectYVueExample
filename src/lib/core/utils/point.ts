@@ -2,7 +2,7 @@ const DELIMITER = '|';
 
 type numOrStr = number | string;
 
-interface PointConstructor {
+interface IPointConstructor {
   new(x: number, y: number): Point;
   fromString(value: string): Point;
   isEqual(x1: numOrStr, y1: numOrStr, x2: numOrStr, y2: numOrStr): boolean;
@@ -40,7 +40,11 @@ export default class Point {
     return [this.x, this.y];
   }
 
+  public toObject() {
+    return { x: this.x, y: this.y };
+  }
+
   public isEqualTo(x: numOrStr, y: numOrStr): boolean {
-    return (this.constructor as PointConstructor).isEqual(this.x, this.y, x, y);
+    return (this.constructor as IPointConstructor).isEqual(this.x, this.y, x, y);
   }
 }

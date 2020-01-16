@@ -1,5 +1,6 @@
-import buildEvent from '@/utils/build-event';
-import Point from '@/utils/point';
+import buildEvent from '@/lib/core/utils/build-event';
+import Point from '@/lib/core/utils/point';
+import Tile from '@/lib/core/utils/tile';
 
 import Canvas from '../canvas';
 
@@ -20,17 +21,17 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
   }
 
   class TileableCanvas extends BaseClass {
-    private _tiles: Map<string, ImageBitmap> = null;
-    private _hoverTile: ImageBitmap = null;
+    private _tiles: Map<string, Tile> = null;
+    private _hoverTile: Tile = null;
     protected _tileSize = {
       x: 16,
       y: 16,
     };
 
-    _layers: Hash<Map<string, ImageBitmap>> = {
-      [BACKGROUND_LAYER]: new Map<string, ImageBitmap>(),
-      [ZERO_LAYER]: new Map<string, ImageBitmap>(),
-      [FOREGROUND_LAYER]: new Map<string, ImageBitmap>(),
+    _layers: Hash<Map<string, Tile>> = {
+      [BACKGROUND_LAYER]: new Map<string, Tile>(),
+      [ZERO_LAYER]: new Map<string, Tile>(),
+      [FOREGROUND_LAYER]: new Map<string, Tile>(),
     };
 
     _columnsNumber = 0;
@@ -55,7 +56,7 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
       return layer.get(`${y}|${x}`);
     }
 
-    _updateTileByCoord(x: number, y: number, z: LAYER_INDEX = ZERO_LAYER, tile: ImageBitmap) {
+    _updateTileByCoord(x: number, y: number, z: LAYER_INDEX = ZERO_LAYER, tile: Tile) {
       const layer = this._layers[z];
 
       if (tile != null) {
@@ -87,11 +88,11 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
       this._drawLayer(this._layers[FOREGROUND_LAYER]);
     }
 
-    _drawLayer(layer: Map<string, ImageBitmap>) {
+    _drawLayer(layer: Map<string, Tile>) {
       for (const [place, tile] of layer.entries()) {
         const [y, x] = Point.fromString(place).toArray();
         this._ctx.drawImage(
-          tile,
+          tile.bitmap,
           x * this._tileSize.x,
           y * this._tileSize.y,
           this._tileSize.x,
@@ -172,7 +173,20 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
       const ctx = canvas.getContext('2d');
       ctx.fillStyle = 'hsla(0, 0%, 0%, .1)';
       ctx.fillRect(0, 0, this._tileSize.x, this._tileSize.y);
-      this._hoverTile = await createImageBitmap(canvas, 0, 0, this._tileSize.x, this._tileSize.y);
+
+      const source: ISource = {
+        data: canvas,
+        tileSize: {
+          x: this._tileSize.x,
+          y: this._tileSize.y,
+        },
+      };
+
+      this._hoverTile = await Tile.fromTileSet(
+        source,
+        { x: 0, y: 0 },
+        { sourceCoords: { x: 0, y: 0 }, size: { ...this._tileSize } },
+      );
     }
 
     protected _resize(multiplier: number) {
@@ -201,7 +215,7 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
       await super.init();
     }
 
-    public async updateCurrentTiles(tiles: Map<string, ImageBitmap>) {
+    public async updateCurrentTiles(tiles: Map<string, Tile>) {
       this._tiles = tiles;
     }
 

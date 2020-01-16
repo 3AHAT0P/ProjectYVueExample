@@ -1,9 +1,11 @@
 <template>
   <div :class="blockName | bemMods(mods)">
-    <div><canvas class="main-canvas" ref="mainCanvas"></canvas></div>
+    <div>
+      <canvas class="main-tile-map" ref="mainTileMap"></canvas>
+      <button @click="saveTileMap">Save</button>
+    </div>
     <div><canvas class="brush-preview" ref="brushPreview"></canvas></div>
     <div><canvas class="main-tile-set" ref="mainTileSet"></canvas></div>
-    <div><canvas class="main-tile-map" ref="mainTileMap"></canvas></div>
   </div>
 </template>
 
@@ -25,9 +27,7 @@ import ResizeableCanvasMixin from '@/lib/core/canvas/mixins/resizeable-canvas';
 import TileableCanvasMixin from '@/lib/core/canvas/mixins/tileable-canvas';
 import DrawableCanvasMixin from '@/lib/core/canvas/mixins/drawable-canvas';
 
-import Point from '@/utils/point';
-
-const MainCanvas = DrawableCanvasMixin(TileableCanvasMixin(ResizeableCanvasMixin(Canvas)));
+import Point from '@/lib/core/utils/point';
 
 const { BASE_URL } = process.env;
 
@@ -43,12 +43,19 @@ export default class Editor extends Vue {
 
   private blockName: string = 'editor';
 
+  private mainTileSet: any = null;
+  private mainTileMap: any = null;
+
   mounted() {
     this.init();
   }
 
   async init() {
-    const mainCanvas = await MainCanvas.create<any>({ el: this.$refs.mainCanvas, size: { width: 512, height: 512 } });
+    const mainTileMap = await MainTileMap.create({
+      el: this.$refs.mainTileMap,
+      imageUrl: MainTileMapUrl,
+      metadataUrl: MainTileMapMetaUrl,
+    });
     const currentTileCanvas = await Canvas.create({
       el: this.$refs.brushPreview,
       size: { width: 64, height: 64 },
@@ -58,9 +65,13 @@ export default class Editor extends Vue {
       imageUrl: MainTileSetUrl,
     });
 
+    this.mainTileMap = mainTileMap;
+    this.mainTileSet = mainTileSet;
+
     mainTileSet.addEventListener(':multiSelect', ({ tiles }: any) => {
-      mainCanvas.updateCurrentTiles(tiles);
-      mainCanvas.dispatchEvent(new Event(':renderRequest'));
+      // @ts-ignore
+      mainTileMap.updateCurrentTiles(tiles);
+      mainTileMap.dispatchEvent(new Event(':renderRequest'));
       if (tiles != null) {
         currentTileCanvas.addEventListener(':render', (event: any) => {
           const width = 64;
@@ -76,18 +87,28 @@ export default class Editor extends Vue {
           const tileHeight = height / (maxX + 1);
           for (const [place, tile] of tiles.entries()) {
             const [y, x] = Point.fromString(place).toArray();
-            event.ctx.drawImage(tile, x * tileWidth, y * tileHeight, tileWidth, tileHeight);
+            event.ctx.drawImage(tile.bitmap, x * tileWidth, y * tileHeight, tileWidth, tileHeight);
           }
         }, { once: true });
         currentTileCanvas.dispatchEvent(new Event(':renderRequest'));
       }
     });
+  }
 
-    const tileMap = await MainTileMap.create({
-      el: this.$refs.mainTileMap,
-      imageUrl: MainTileMapUrl,
-      metadataUrl: MainTileMapMetaUrl,
-    });
+  async saveTileMap() {
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    document.body.appendChild(a);
+
+    const { meta } = await this.mainTileMap.save();
+
+    const blob = new Blob([JSON.stringify(meta)], { type: 'application/json' });
+    a.href = URL.createObjectURL(blob);
+    a.download = 'tilemap.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+
+    a.remove();
   }
 }
 </script>

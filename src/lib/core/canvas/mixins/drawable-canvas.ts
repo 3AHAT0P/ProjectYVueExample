@@ -1,6 +1,6 @@
-import buildEvent from '@/utils/build-event';
-import Point from '@/utils/point';
-import Cursor from '@/utils/cursor';
+import Point from '@/lib/core/utils/point';
+import Tile from '@/lib/core/utils/tile';
+import Cursor from '@/lib/core/utils/cursor';
 
 import CustomCanvas from '../canvas';
 
@@ -61,6 +61,14 @@ const DrawableCanvasMixin = (BaseClass: typeof TileableCanvas = TileableCanvas) 
       this._el.removeEventListener('mousemove', this[_onMouseMoveHandler]);
     }
 
+    [_onMouseLeaveHandler]() {
+      window.addEventListener('mouseup', this[_onMouseUpHandler], { passive: true });
+    }
+
+    [_onMouseEnterHandler]() {
+      window.removeEventListener('mouseup', this[_onMouseUpHandler]);
+    }
+
     [_onContextMenuHandler](event: MouseEvent) {
       if (!event.metaKey) event.preventDefault();
     }
@@ -92,6 +100,8 @@ const DrawableCanvasMixin = (BaseClass: typeof TileableCanvas = TileableCanvas) 
       this._el.addEventListener('contextmenu', this[_onContextMenuHandler]);
       this._el.addEventListener('mousedown', this[_onMouseDownHandler], { passive: true });
       this._el.addEventListener('mouseup', this[_onMouseUpHandler], { passive: true });
+      this._el.addEventListener('mouseenter', this[_onMouseEnterHandler], { passive: true });
+      this._el.addEventListener('mouseleave', this[_onMouseLeaveHandler], { passive: true });
     }
 
     constructor(options = {}) {
@@ -101,52 +111,49 @@ const DrawableCanvasMixin = (BaseClass: typeof TileableCanvas = TileableCanvas) 
       this[_onMouseDownHandler] = this[_onMouseDownHandler].bind(this);
       this[_onMouseMoveHandler] = this[_onMouseMoveHandler].bind(this);
       this[_onMouseUpHandler] = this[_onMouseUpHandler].bind(this);
+      this[_onMouseEnterHandler] = this[_onMouseEnterHandler].bind(this);
+      this[_onMouseLeaveHandler] = this[_onMouseLeaveHandler].bind(this);
     }
 
-    async updateCurrentTiles(tiles: Map<string, ImageBitmap>) {
+    async updateCurrentTiles(tiles: Map<string, Tile>) {
       super.updateCurrentTiles(tiles);
-      if (this.tiles.size === 1) {
-        await this._cursor.updateImageFromBitmap(this.tiles.get(new Point(0, 0).toString()));
-        this._cursor.showCursor();
-      }
+
+      await this._cursor.updateImageFromTilemap(tiles);
+      this._cursor.showCursor();
     }
 
     async save() {
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      document.body.appendChild(a);
-
-      this._render(null, true);
-
-      const img = await new Promise((resolve) => this._el.toBlob(resolve, 'image/png'));
-      a.href = URL.createObjectURL(img);
-      a.download = 'tilemap.png';
-      a.click();
-      URL.revokeObjectURL(a.href);
-
-      this._render(null, false);
-
-      const json: Hash = {};
+      const json: any = {
+        tileHash: {},
+        tileMapSize: {
+          width: this.width,
+          height: this.height,
+        },
+      };
 
       for (const [key, tile] of this._layers[ZERO_LAYER].entries()) {
-        json[key] = { };
+        json.tileHash[key] = tile.meta;
       }
-      const blob = new Blob([JSON.stringify(json)], { type: 'application/json' });
-      a.href = URL.createObjectURL(blob);
-      a.download = 'tilemap.json';
-      a.click();
-      URL.revokeObjectURL(a.href);
 
-      a.remove();
+      return { meta: json };
     }
 
     async load({ meta: tilesMeta, img }: any) {
+      console.log('DrawableCanvas::load - Called');
       const promises = [];
-      for (const [key, tileMeta] of Object.entries(tilesMeta)) {
-        const [y, x] = Point.fromString(key).toArray();
+      for (const [key, tileMeta] of Object.entries<any>(tilesMeta)) {
+        const x = tileMeta.sourceCoords.x * this._tileSize.x;
+        const y = tileMeta.sourceCoords.y * this._tileSize.y;
+
+        const source = {
+          data: img,
+          url: tileMeta.sourceSrc,
+          tileSize: { ...this._tileSize },
+        };
+
         promises.push(
-          createImageBitmap(img, x * this._tileSize.x, y * this._tileSize.y, this._tileSize.x, this._tileSize.y)
-            .then((tile) => this._layers[ZERO_LAYER].set(key, tile)),
+          Tile.fromTileSet(source, { x, y }, { sourceCoords: tileMeta.sourceCoords, size: { ...this._tileSize } })
+            .then((tile: Tile) => this._layers[ZERO_LAYER].set(key, tile)),
         );
       }
       await Promise.all(promises);

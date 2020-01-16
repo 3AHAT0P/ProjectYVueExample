@@ -1,7 +1,8 @@
 import { TileableCanvas } from '@/lib/core/canvas/mixins/tileable-canvas';
 import SelectableCanvasMixin from '@/lib/core/canvas/mixins/selectable-canvas';
 import ResizeableCanvasMixin from '@/lib/core/canvas/mixins/resizeable-canvas';
-import buildEvent from '@/utils/build-event';
+import buildEvent from '@/lib/core/utils/build-event';
+import Tile from '@/lib/core/utils/tile';
 
 interface MouseEventPoint {
   offsetX: number;
@@ -13,7 +14,7 @@ interface MultiselectEvent {
   to: MouseEventPoint;
 }
 
-export default class MineTileMap extends (SelectableCanvasMixin(ResizeableCanvasMixin(TileableCanvas)) as any) {
+export default class TileSet extends (SelectableCanvasMixin(ResizeableCanvasMixin(TileableCanvas)) as any) {
   private _imageSrcLink: string = null; // 'content/tilesets/main-tile-set.png';
   private _imageSrc: HTMLImageElement = null;
 
@@ -23,7 +24,7 @@ export default class MineTileMap extends (SelectableCanvasMixin(ResizeableCanvas
   _onMultiSelect({ from, to }: MultiselectEvent) {
     const [xFrom, yFrom] = this._transformEventCoordsToGridCoords(from.offsetX, from.offsetY);
     const [xTo, yTo] = this._transformEventCoordsToGridCoords(to.offsetX, to.offsetY);
-    const tiles = new Map<string, ImageBitmap>();
+    const tiles = new Map<string, Tile>();
     for (let y = yFrom, _y = 0; y <= yTo; y += 1, _y += 1) {
       for (let x = xFrom, _x = 0; x <= xTo; x += 1, _x += 1) {
         tiles.set(`${_y}|${_x}`, this._getTile(x, y));
@@ -69,14 +70,19 @@ export default class MineTileMap extends (SelectableCanvasMixin(ResizeableCanvas
   }
 
   async _parse() {
+    const source = {
+      data: this._imageSrc,
+      url: this._imageSrcLink,
+      tileSize: { ...this._tileSize },
+    };
     const promises = [];
     for (let row = 0; row < this._rowsNumber; row += 1) {
       const y = row * this._tileSize.y;
       for (let col = 0; col < this._columnsNumber; col += 1) {
         const x = col * this._tileSize.x;
         promises.push(
-          createImageBitmap(this._imageSrc, x, y, this._tileSize.x, this._tileSize.y)
-            .then((tile: ImageBitmap) => this._updateTileByCoord(col, row, '0', tile)),
+          Tile.fromTileSet(source, { x, y }, { sourceCoords: { x: col, y: row }, size: { ...this._tileSize } })
+            .then((tile: Tile) => this._updateTileByCoord(col, row, '0', tile)),
         );
       }
     }
