@@ -12,8 +12,9 @@ const CLASS_NAME = Symbol.for('TileableCanvas');
 export const BACKGROUND_LAYER = '-1';
 export const ZERO_LAYER = '0';
 export const FOREGROUND_LAYER = '1';
+export const UI_INDEX = '2';
 
-export type LAYER_INDEX = '-1' | '0' | '1';
+export type LAYER_INDEX = '-1' | '0' | '1' | '2';
 
 const TileableCanvasMixin = (BaseClass = Canvas) => {
   if (!(BaseClass === Canvas || Canvas.isPrototypeOf(BaseClass))) {
@@ -32,6 +33,7 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
       [BACKGROUND_LAYER]: new Map<string, Tile>(),
       [ZERO_LAYER]: new Map<string, Tile>(),
       [FOREGROUND_LAYER]: new Map<string, Tile>(),
+      [UI_INDEX]: new Map<string, Tile>(),
     };
 
     _columnsNumber = 0;
@@ -71,27 +73,36 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
     }
 
     _hoverTilePlace(x: number, y: number) {
-      for (const [place, tile] of this._layers[FOREGROUND_LAYER].entries()) {
+      for (const [place, tile] of this._layers[UI_INDEX].entries()) {
         if (tile != null) {
           const [_y, _x] = Point.fromString(place).toArray();
           if (Point.isEqual(x, y, _x, _y)) return;
 
-          this._updateTileByCoord(_x, _y, FOREGROUND_LAYER, null);
+          this._updateTileByCoord(_x, _y, UI_INDEX, null);
         }
       }
-      this._updateTileByCoord(x, y, FOREGROUND_LAYER, this._hoverTile);
+      this._updateTileByCoord(x, y, UI_INDEX, this._hoverTile);
     }
 
-    _clearLayers() {
-      this._layers[BACKGROUND_LAYER].clear();
-      this._layers[ZERO_LAYER].clear();
-      this._layers[FOREGROUND_LAYER].clear();
+    _clearLayer(level: LAYER_INDEX | 'ALL') {
+      if (level === 'ALL') {
+        this._layers[BACKGROUND_LAYER].clear();
+        this._layers[ZERO_LAYER].clear();
+        this._layers[FOREGROUND_LAYER].clear();
+        this._layers[UI_INDEX].clear();
+      } else this._layers[level].clear();
+    }
+
+    clearLayer(level: LAYER_INDEX | 'ALL') {
+      this._clearLayer(level);
+      this._renderInNextFrame();
     }
 
     _drawTiles() {
       this._drawLayer(this._layers[BACKGROUND_LAYER]);
       this._drawLayer(this._layers[ZERO_LAYER]);
       this._drawLayer(this._layers[FOREGROUND_LAYER]);
+      this._drawLayer(this._layers[UI_INDEX]);
     }
 
     _drawLayer(layer: Map<string, Tile>) {

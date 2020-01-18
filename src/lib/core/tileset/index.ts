@@ -91,4 +91,17 @@ export default class TileSet extends (SelectableCanvasMixin(ResizeableCanvasMixi
   async _loadMetadata() {
     this._metadataSrc = await (await fetch(this._metadataSrcLink)).json();
   }
+
+  public async updateImageUrl(url: string = null) {
+    if (url == null) return;
+
+    this._imageSrcLink = url;
+
+    this._clearLayer('ALL');
+
+    await this._loadImage();
+    await this._parse();
+
+    this._renderInNextFrame();
+  }
 }

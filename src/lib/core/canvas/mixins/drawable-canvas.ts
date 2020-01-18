@@ -39,19 +39,23 @@ const DrawableCanvasMixin = (BaseClass: typeof TileableCanvas = TileableCanvas) 
     _drawState = false;
     _drawType = DRAW_STATE_ENAM.DRAW;
 
+    _currentLayerIndex: LAYER_INDEX = ZERO_LAYER;
+
     _cursor = new Cursor(this._el, { offset: { x: 8, y: 8 } });
 
     [_onMouseDownHandler](event: MouseEvent) {
       // @TODO improve it!!!
       if (event.metaKey || event.ctrlKey) return;
       this._startDraw(event);
-      this._updateTilePlace(...this._transformEventCoordsToGridCoords(event.offsetX, event.offsetY));
+      const [x, y] = this._transformEventCoordsToGridCoords(event.offsetX, event.offsetY);
+      this._updateTilePlace(x, y, this._currentLayerIndex);
       this._renderInNextFrame();
     }
 
     [_onMouseMoveHandler](event: MouseEvent) {
       if (this._drawState) {
-        this._updateTilePlace(...this._transformEventCoordsToGridCoords(event.offsetX, event.offsetY));
+        const [x, y] = this._transformEventCoordsToGridCoords(event.offsetX, event.offsetY);
+        this._updateTilePlace(x, y, this._currentLayerIndex);
         this._renderInNextFrame();
       }
     }
@@ -115,6 +119,10 @@ const DrawableCanvasMixin = (BaseClass: typeof TileableCanvas = TileableCanvas) 
       this[_onMouseLeaveHandler] = this[_onMouseLeaveHandler].bind(this);
     }
 
+    async updateCurrentLayerIndex(level: LAYER_INDEX) {
+      this._currentLayerIndex = level;
+    }
+
     async updateCurrentTiles(tiles: Map<string, Tile>) {
       super.updateCurrentTiles(tiles);
 
@@ -130,19 +138,29 @@ const DrawableCanvasMixin = (BaseClass: typeof TileableCanvas = TileableCanvas) 
           width: this.width,
           height: this.height,
         },
-        version: '0.3.0',
+        version: '0.4.0',
       };
+
+      for (const [key, tile] of this._layers[BACKGROUND_LAYER].entries()) {
+        if (json.uniqTiles[tile.id] == null) json.uniqTiles[tile.id] = tile.meta;
+        json.tileHash[`${BACKGROUND_LAYER}>${key}`] = tile.id;
+      }
 
       for (const [key, tile] of this._layers[ZERO_LAYER].entries()) {
         if (json.uniqTiles[tile.id] == null) json.uniqTiles[tile.id] = tile.meta;
-        json.tileHash[key] = tile.id;
+        json.tileHash[`${ZERO_LAYER}>${key}`] = tile.id;
+      }
+
+      for (const [key, tile] of this._layers[FOREGROUND_LAYER].entries()) {
+        if (json.uniqTiles[tile.id] == null) json.uniqTiles[tile.id] = tile.meta;
+        json.tileHash[`${FOREGROUND_LAYER}>${key}`] = tile.id;
       }
 
       return { meta: json };
     }
 
     async load({ meta, img }: any) {
-      if (meta.version !== '0.3.0') throw new Error('Metadata file version mismatch!');
+      if (meta.version !== '0.4.0') throw new Error('Metadata file version mismatch!');
 
       const { uniqTiles, tileHash: gridCells } = meta;
 
@@ -150,9 +168,6 @@ const DrawableCanvasMixin = (BaseClass: typeof TileableCanvas = TileableCanvas) 
 
       const promises = [];
       for (const [id, tileMeta] of Object.entries<any>(uniqTiles)) {
-        const x = tileMeta.sourceCoords.x * this._tileSize.x;
-        const y = tileMeta.sourceCoords.y * this._tileSize.y;
-
         const source = {
           data: img,
           url: tileMeta.sourceSrc,
@@ -167,8 +182,10 @@ const DrawableCanvasMixin = (BaseClass: typeof TileableCanvas = TileableCanvas) 
       await Promise.all(promises);
 
       for (const [key, tileId] of Object.entries<any>(gridCells)) {
-        this._layers[ZERO_LAYER].set(key, tiles[tileId]);
+        const [level, place] = key.split('>');
+        this._layers[level].set(place, tiles[tileId]);
       }
+      console.log('------', this._layers);
     }
   }
 

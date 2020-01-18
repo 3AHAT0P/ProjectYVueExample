@@ -16,9 +16,13 @@ export default class TileMap extends DrawableCanvas {
   async init() {
     await super.init();
 
-    await this._loadMetadata();
-    await this._loadImage();
-    await this.load({ meta: this._metadataSrc, img: this._imageSrc });
+    try {
+      await this._loadMetadata();
+      await this._loadImage();
+      await this.load({ meta: this._metadataSrc, img: this._imageSrc });
+    } catch (error) {
+      console.error(error);
+    }
 
     this._renderInNextFrame();
   }
@@ -48,12 +52,11 @@ export default class TileMap extends DrawableCanvas {
   }
 
   public async updateMetadataUrl(url: string = null) {
-    console.log(this._metadataSrcLink, url);
     if (url == null) return;
 
     this._metadataSrcLink = url;
 
-    this._clearLayers();
+    this._clearLayer('ALL');
 
     await this._loadMetadata();
     await this._loadImage();
