@@ -82,6 +82,12 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
       this._updateTileByCoord(x, y, FOREGROUND_LAYER, this._hoverTile);
     }
 
+    _clearLayers() {
+      this._layers[BACKGROUND_LAYER].clear();
+      this._layers[ZERO_LAYER].clear();
+      this._layers[FOREGROUND_LAYER].clear();
+    }
+
     _drawTiles() {
       this._drawLayer(this._layers[BACKGROUND_LAYER]);
       this._drawLayer(this._layers[ZERO_LAYER]);
@@ -92,7 +98,11 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
       for (const [place, tile] of layer.entries()) {
         const [y, x] = Point.fromString(place).toArray();
         this._ctx.drawImage(
-          tile.bitmap,
+          tile.source.data,
+          tile.sourceRegion.x * tile.source.tileSize.x,
+          tile.sourceRegion.y * tile.source.tileSize.y,
+          tile.source.tileSize.x,
+          tile.source.tileSize.y,
           x * this._tileSize.x,
           y * this._tileSize.y,
           this._tileSize.x,
@@ -106,8 +116,12 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
       //   for (const [place, tile] of layer.entries()) {
       //     const [y, x] = Point.fromString(place).toArray();
       //     layer.cache.drawImage(
-      //       tile,
-      //       x) * this._tileSize.x,
+      //       tile.source.data,
+      //       tile.sourceRegion.x * tile.source.tileSize.x,
+      //       tile.sourceRegion.y * tile.source.tileSize.y,
+      //       tile.source.tileSize.x,
+      //       tile.source.tileSize.y,
+      //       x * this._tileSize.x,
       //       y * this._tileSize.y,
       //       this._tileSize.x,
       //       this._tileSize.y,
@@ -184,7 +198,6 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
 
       this._hoverTile = await Tile.fromTileSet(
         source,
-        { x: 0, y: 0 },
         { sourceCoords: { x: 0, y: 0 }, size: { ...this._tileSize } },
       );
     }
@@ -217,6 +230,7 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
 
     public async updateCurrentTiles(tiles: Map<string, Tile>) {
       this._tiles = tiles;
+      this._renderInNextFrame();
     }
 
     updateSize(width: number, height: number) {

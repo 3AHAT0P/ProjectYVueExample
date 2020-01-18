@@ -81,7 +81,7 @@ export default class TileSet extends (SelectableCanvasMixin(ResizeableCanvasMixi
       for (let col = 0; col < this._columnsNumber; col += 1) {
         const x = col * this._tileSize.x;
         promises.push(
-          Tile.fromTileSet(source, { x, y }, { sourceCoords: { x: col, y: row }, size: { ...this._tileSize } })
+          Tile.fromTileSet(source, { sourceCoords: { x: col, y: row }, size: { ...this._tileSize } })
             .then((tile: Tile) => this._updateTileByCoord(col, row, '0', tile)),
         );
       }

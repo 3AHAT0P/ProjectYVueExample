@@ -10,7 +10,6 @@ export default class TileMap extends DrawableCanvas {
   constructor(options: any = {}) {
     super(options);
 
-    this._imageSrcLink = options.imageUrl;
     this._metadataSrcLink = options.metadataUrl;
   }
 
@@ -24,7 +23,7 @@ export default class TileMap extends DrawableCanvas {
     this._renderInNextFrame();
   }
 
-  async _loadImage() {
+  private async _loadImage() {
     this._imageSrc = new Image();
     await new Promise((resolve, reject) => {
       this._imageSrc.onload = resolve;
@@ -33,12 +32,12 @@ export default class TileMap extends DrawableCanvas {
     });
   }
 
-  async _loadMetadata() {
+  private async _loadMetadata() {
     const metaDataJson = await (await fetch(this._metadataSrcLink)).json();
     this.updateSize(metaDataJson.tileMapSize.width, metaDataJson.tileMapSize.height);
-    this._metadataSrc = metaDataJson.tileHash;
+    this._metadataSrc = metaDataJson;
     const sources: any = {};
-    for (const [place, meta] of Object.entries<any>(this._metadataSrc)) {
+    for (const [id, meta] of Object.entries<any>(this._metadataSrc.uniqTiles)) {
       if (sources[meta.sourceSrc] == null) {
         sources[meta.sourceSrc] = true;
         // @TODO: We could have situatuation,
@@ -46,5 +45,20 @@ export default class TileMap extends DrawableCanvas {
         this._imageSrcLink = meta.sourceSrc;
       }
     }
+  }
+
+  public async updateMetadataUrl(url: string = null) {
+    console.log(this._metadataSrcLink, url);
+    if (url == null) return;
+
+    this._metadataSrcLink = url;
+
+    this._clearLayers();
+
+    await this._loadMetadata();
+    await this._loadImage();
+    await this.load({ meta: this._metadataSrc, img: this._imageSrc });
+
+    this._renderInNextFrame();
   }
 }

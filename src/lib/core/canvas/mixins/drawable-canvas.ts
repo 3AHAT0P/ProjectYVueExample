@@ -124,24 +124,32 @@ const DrawableCanvasMixin = (BaseClass: typeof TileableCanvas = TileableCanvas) 
 
     async save() {
       const json: any = {
+        uniqTiles: {},
         tileHash: {},
         tileMapSize: {
           width: this.width,
           height: this.height,
         },
+        version: '0.3.0',
       };
 
       for (const [key, tile] of this._layers[ZERO_LAYER].entries()) {
-        json.tileHash[key] = tile.meta;
+        if (json.uniqTiles[tile.id] == null) json.uniqTiles[tile.id] = tile.meta;
+        json.tileHash[key] = tile.id;
       }
 
       return { meta: json };
     }
 
-    async load({ meta: tilesMeta, img }: any) {
-      console.log('DrawableCanvas::load - Called');
+    async load({ meta, img }: any) {
+      if (meta.version !== '0.3.0') throw new Error('Metadata file version mismatch!');
+
+      const { uniqTiles, tileHash: gridCells } = meta;
+
+      const tiles: any = { };
+
       const promises = [];
-      for (const [key, tileMeta] of Object.entries<any>(tilesMeta)) {
+      for (const [id, tileMeta] of Object.entries<any>(uniqTiles)) {
         const x = tileMeta.sourceCoords.x * this._tileSize.x;
         const y = tileMeta.sourceCoords.y * this._tileSize.y;
 
@@ -152,11 +160,15 @@ const DrawableCanvasMixin = (BaseClass: typeof TileableCanvas = TileableCanvas) 
         };
 
         promises.push(
-          Tile.fromTileSet(source, { x, y }, { sourceCoords: tileMeta.sourceCoords, size: { ...this._tileSize } })
-            .then((tile: Tile) => this._layers[ZERO_LAYER].set(key, tile)),
+          Tile.fromTileSet(source, { id, sourceCoords: tileMeta.sourceCoords, size: { ...this._tileSize } })
+            .then((tile: Tile) => { tiles[id] = tile; }),
         );
       }
       await Promise.all(promises);
+
+      for (const [key, tileId] of Object.entries<any>(gridCells)) {
+        this._layers[ZERO_LAYER].set(key, tiles[tileId]);
+      }
     }
   }
 

@@ -19,6 +19,16 @@ export default (
 
   for (const [place, tile] of tiles.entries()) {
     const [y, x] = Point.fromString(place).toArray();
-    ctx.drawImage(tile.bitmap, x * tileWidth, y * tileHeight, tileWidth, tileHeight);
+    ctx.drawImage(
+      tile.source.data,
+      tile.sourceRegion.x * tile.source.tileSize.x,
+      tile.sourceRegion.y * tile.source.tileSize.y,
+      tile.source.tileSize.x,
+      tile.source.tileSize.y,
+      x * tileWidth,
+      y * tileHeight,
+      tileWidth,
+      tileHeight,
+    );
   }
 };
