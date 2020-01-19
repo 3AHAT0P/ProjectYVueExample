@@ -184,6 +184,8 @@ const DrawableCanvasMixin = (BaseClass: typeof TileableCanvas = TileableCanvas) 
         const [level, place] = key.split('>');
         this._layers[level].set(place, tiles[tileId]);
       }
+
+      this.invalidateCache('ALL');
     }
   }
 

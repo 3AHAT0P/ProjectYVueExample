@@ -69,10 +69,14 @@ export default class Canvas extends EventTarget {
     this._el.height = height;
   }
 
-  clear(color: string = 'white') {
+  fill(color: string = 'white') {
     this._ctx.save();
     this._ctx.fillStyle = color;
     this._ctx.fillRect(0, 0, this._el.width, this._el.height);
     this._ctx.restore();
+  }
+
+  clear() {
+    this._ctx.clearRect(0, 0, this._el.width, this._el.height);
   }
 }

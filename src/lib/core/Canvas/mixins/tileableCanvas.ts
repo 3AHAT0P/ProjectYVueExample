@@ -12,9 +12,26 @@ const CLASS_NAME = Symbol.for('TileableCanvas');
 export const BACKGROUND_LAYER = '-1';
 export const ZERO_LAYER = '0';
 export const FOREGROUND_LAYER = '1';
-export const UI_LAYER = '2';
+export const SYSTEM_UI_LAYER = '2';
 
 export type LAYER_INDEX = '-1' | '0' | '1' | '2';
+
+interface ILayerCache {
+  canvas: HTMLCanvasElement;
+  ctx: CanvasRenderingContext2D;
+  isDirty: boolean;
+}
+
+const createCache = () => {
+  const canvas = document.createElement('canvas');
+  return {
+    canvas,
+    ctx: canvas.getContext('2d'),
+    isDirty: true,
+  };
+};
+
+const LAYER_INDEXES = [BACKGROUND_LAYER, ZERO_LAYER, FOREGROUND_LAYER, SYSTEM_UI_LAYER];
 
 const TileableCanvasMixin = (BaseClass = Canvas) => {
   if (!(BaseClass === Canvas || Canvas.isPrototypeOf(BaseClass))) {
@@ -29,13 +46,21 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
       y: 16,
     };
 
-    private _visibleLayers: LAYER_INDEX[] = [BACKGROUND_LAYER, ZERO_LAYER, FOREGROUND_LAYER, UI_LAYER];
+    private _visibleLayersChanged: boolean = false;
+    private _visibleLayers: LAYER_INDEX[] = [BACKGROUND_LAYER, ZERO_LAYER, FOREGROUND_LAYER, SYSTEM_UI_LAYER];
 
     _layers: Hash<Map<string, Tile>> = {
       [BACKGROUND_LAYER]: new Map<string, Tile>(),
       [ZERO_LAYER]: new Map<string, Tile>(),
       [FOREGROUND_LAYER]: new Map<string, Tile>(),
-      [UI_LAYER]: new Map<string, Tile>(),
+      [SYSTEM_UI_LAYER]: new Map<string, Tile>(),
+    };
+
+    _layersCache: Hash<ILayerCache> = {
+      [BACKGROUND_LAYER]: createCache(),
+      [ZERO_LAYER]: createCache(),
+      [FOREGROUND_LAYER]: createCache(),
+      [SYSTEM_UI_LAYER]: createCache(),
     };
 
     _columnsNumber = 0;
@@ -69,6 +94,8 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
 
     _updateTileByCoord(x: number, y: number, z: LAYER_INDEX = ZERO_LAYER, tile: Tile) {
       const layer = this._layers[z];
+      // @TODO Optimization
+      this._layersCache[z].isDirty = true;
 
       if (tile != null) {
         if (layer.get(`${y}|${x}`) === tile) return;
@@ -77,34 +104,41 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
         if (!layer.has(`${y}|${x}`)) return;
         layer.delete(`${y}|${x}`);
       }
-      // @TODO Optimization
-      // layer.isDirty = true;
     }
 
     _hoverTilePlace(x: number, y: number) {
-      for (const [place, tile] of this._layers[UI_LAYER].entries()) {
+      for (const [place, tile] of this._layers[SYSTEM_UI_LAYER].entries()) {
         if (tile != null) {
           const [_y, _x] = Point.fromString(place).toArray();
           if (Point.isEqual(x, y, _x, _y)) return;
 
-          this._updateTileByCoord(_x, _y, UI_LAYER, null);
+          this._updateTileByCoord(_x, _y, SYSTEM_UI_LAYER, null);
         }
       }
-      this._updateTileByCoord(x, y, UI_LAYER, this._hoverTile);
+      this._updateTileByCoord(x, y, SYSTEM_UI_LAYER, this._hoverTile);
+    }
+
+    invalidateCache(level: LAYER_INDEX | 'ALL') {
+      if (level === 'ALL') {
+        for (const layerIndex of LAYER_INDEXES) {
+          this._layersCache[layerIndex].isDirty = true;
+        }
+      } else this._layersCache[level].isDirty = true;
     }
 
     updateVisibleLayers(levels: LAYER_INDEX[]) {
-      this._visibleLayers = <LAYER_INDEX[]>[...levels, UI_LAYER].sort();
+      this._visibleLayers = <LAYER_INDEX[]>[...levels, SYSTEM_UI_LAYER].sort();
+      this._visibleLayersChanged = true;
       this._renderInNextFrame();
     }
 
     _clearLayer(level: LAYER_INDEX | 'ALL') {
       if (level === 'ALL') {
-        this._layers[BACKGROUND_LAYER].clear();
-        this._layers[ZERO_LAYER].clear();
-        this._layers[FOREGROUND_LAYER].clear();
-        this._layers[UI_LAYER].clear();
+        for (const layerIndex of LAYER_INDEXES) {
+          this._layers[layerIndex].clear();
+        }
       } else this._layers[level].clear();
+      this.invalidateCache(level);
     }
 
     clearLayer(level: LAYER_INDEX | 'ALL') {
@@ -114,48 +148,34 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
 
     _drawTiles() {
       for (const layerIndex of this._visibleLayers) {
-        this._drawLayer(this._layers[layerIndex]);
+        this._drawLayer(this._layers[layerIndex], this._layersCache[layerIndex]);
       }
     }
 
-    _drawLayer(layer: Map<string, Tile>) {
-      for (const [place, tile] of layer.entries()) {
-        const [y, x] = Point.fromString(place).toArray();
-        this._ctx.drawImage(
-          tile.source.data,
-          tile.sourceRegion.x * tile.source.tileSize.x,
-          tile.sourceRegion.y * tile.source.tileSize.y,
-          tile.source.tileSize.x,
-          tile.source.tileSize.y,
-          x * this._tileSize.x,
-          y * this._tileSize.y,
-          this._tileSize.x,
-          this._tileSize.y,
-        );
+    _drawLayer(layer: Map<string, Tile>, cache: ILayerCache) {
+      // @TODO Optimization
+      if (cache.isDirty) {
+        // eslint-disable-next-line no-param-reassign
+        cache.isDirty = false;
+        cache.ctx.clearRect(0, 0, cache.canvas.width, cache.canvas.height);
+        for (const [place, tile] of layer.entries()) {
+          const [y, x] = Point.fromString(place).toArray();
+          cache.ctx.drawImage(
+            tile.source.data,
+            tile.sourceRegion.x * tile.source.tileSize.x,
+            tile.sourceRegion.y * tile.source.tileSize.y,
+            tile.source.tileSize.x,
+            tile.source.tileSize.y,
+            x * this._tileSize.x,
+            y * this._tileSize.y,
+            this._tileSize.x,
+            this._tileSize.y,
+          );
+        }
       }
 
-      // @TODO Optimization
-      // if (layer.isDirty) {
-      //   layer.isDirty = false;
-      //   for (const [place, tile] of layer.entries()) {
-      //     const [y, x] = Point.fromString(place).toArray();
-      //     layer.cache.drawImage(
-      //       tile.source.data,
-      //       tile.sourceRegion.x * tile.source.tileSize.x,
-      //       tile.sourceRegion.y * tile.source.tileSize.y,
-      //       tile.source.tileSize.x,
-      //       tile.source.tileSize.y,
-      //       x * this._tileSize.x,
-      //       y * this._tileSize.y,
-      //       this._tileSize.x,
-      //       this._tileSize.y,
-      //     );
-      //   }
-      //   this._ctx.drawImage(layer.cache, 0, 0, this._el.width, this._el.height);
-      // } else {
-      //   // Render cache of the layer
-      //   this._ctx.drawImage(layer.cache, 0, 0, this._el.width, this._el.height);
-      // }
+      // Render layer cache
+      this._ctx.drawImage(cache.canvas, 0, 0, this._el.width, this._el.height);
     }
 
     private _drawGrid() {
@@ -163,7 +183,7 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
       this._ctx.strokeStyle = 'hsla(0, 100%, 0%, 60%)';
       this._ctx.beginPath();
       this._ctx.setLineDash([4, 2]);
-      this._ctx.lineWidth = 1;
+      this._ctx.lineWidth = 0.4;
       for (let i = 0; i <= this._columnsNumber; i += 1) {
         const lineX = i * this._tileSize.x;
         this._ctx.moveTo(lineX, 0);
@@ -179,6 +199,16 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
     }
 
     protected _render(time: number, clearRender = false) {
+      if (!this._visibleLayersChanged) {
+        let reallyNeedRender = false;
+        for (const layerIndex of this._visibleLayers) {
+          if (this._layersCache[layerIndex].isDirty) {
+            reallyNeedRender = true;
+            break;
+          }
+        }
+        if (!reallyNeedRender) return;
+      }
       // @TODO That time might be used for checking time between renders
       this._ctx.imageSmoothingEnabled = this._imageSmoothingEnabled;
       this.clear();
@@ -256,12 +286,17 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
 
     updateSize(width: number, height: number) {
       super.updateSize(width, height);
+      for (const layerIndex of LAYER_INDEXES) {
+        this._layersCache[layerIndex].canvas.width = this._el.width;
+        this._layersCache[layerIndex].canvas.height = this._el.height;
+      }
       this._calcGrid();
+      this.invalidateCache('ALL');
+      this._renderInNextFrame();
     }
 
     updateTilesCount(width: number, height: number) {
-      super.updateSize(width * this._tileSize.x, height * this._tileSize.y);
-      this._calcGrid();
+      this.updateSize(width * this._tileSize.x, height * this._tileSize.y);
     }
   }
 
