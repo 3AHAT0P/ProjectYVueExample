@@ -12,7 +12,7 @@ const CLASS_NAME = Symbol.for('TileableCanvas');
 export const BACKGROUND_LAYER = '-1';
 export const ZERO_LAYER = '0';
 export const FOREGROUND_LAYER = '1';
-export const UI_INDEX = '2';
+export const UI_LAYER = '2';
 
 export type LAYER_INDEX = '-1' | '0' | '1' | '2';
 
@@ -29,15 +29,24 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
       y: 16,
     };
 
+    private _visibleLayers: LAYER_INDEX[] = [BACKGROUND_LAYER, ZERO_LAYER, FOREGROUND_LAYER, UI_LAYER];
+
     _layers: Hash<Map<string, Tile>> = {
       [BACKGROUND_LAYER]: new Map<string, Tile>(),
       [ZERO_LAYER]: new Map<string, Tile>(),
       [FOREGROUND_LAYER]: new Map<string, Tile>(),
-      [UI_INDEX]: new Map<string, Tile>(),
+      [UI_LAYER]: new Map<string, Tile>(),
     };
 
     _columnsNumber = 0;
     _rowsNumber = 0;
+
+    public get sizeInTiles() {
+      return {
+        x: this._columnsNumber,
+        y: this._rowsNumber,
+      };
+    }
 
     // current
     get tiles() { return this._tiles; }
@@ -73,15 +82,20 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
     }
 
     _hoverTilePlace(x: number, y: number) {
-      for (const [place, tile] of this._layers[UI_INDEX].entries()) {
+      for (const [place, tile] of this._layers[UI_LAYER].entries()) {
         if (tile != null) {
           const [_y, _x] = Point.fromString(place).toArray();
           if (Point.isEqual(x, y, _x, _y)) return;
 
-          this._updateTileByCoord(_x, _y, UI_INDEX, null);
+          this._updateTileByCoord(_x, _y, UI_LAYER, null);
         }
       }
-      this._updateTileByCoord(x, y, UI_INDEX, this._hoverTile);
+      this._updateTileByCoord(x, y, UI_LAYER, this._hoverTile);
+    }
+
+    updateVisibleLayers(levels: LAYER_INDEX[]) {
+      this._visibleLayers = <LAYER_INDEX[]>[...levels, UI_LAYER].sort();
+      this._renderInNextFrame();
     }
 
     _clearLayer(level: LAYER_INDEX | 'ALL') {
@@ -89,7 +103,7 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
         this._layers[BACKGROUND_LAYER].clear();
         this._layers[ZERO_LAYER].clear();
         this._layers[FOREGROUND_LAYER].clear();
-        this._layers[UI_INDEX].clear();
+        this._layers[UI_LAYER].clear();
       } else this._layers[level].clear();
     }
 
@@ -99,10 +113,9 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
     }
 
     _drawTiles() {
-      this._drawLayer(this._layers[BACKGROUND_LAYER]);
-      this._drawLayer(this._layers[ZERO_LAYER]);
-      this._drawLayer(this._layers[FOREGROUND_LAYER]);
-      this._drawLayer(this._layers[UI_INDEX]);
+      for (const layerIndex of this._visibleLayers) {
+        this._drawLayer(this._layers[layerIndex]);
+      }
     }
 
     _drawLayer(layer: Map<string, Tile>) {
@@ -246,6 +259,11 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
 
     updateSize(width: number, height: number) {
       super.updateSize(width, height);
+      this._calcGrid();
+    }
+
+    updateTilesCount(width: number, height: number) {
+      super.updateSize(width * this._tileSize.x, height * this._tileSize.y);
       this._calcGrid();
     }
   }

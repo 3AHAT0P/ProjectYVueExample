@@ -39,13 +39,14 @@ const DrawableCanvasMixin = (BaseClass: typeof TileableCanvas = TileableCanvas) 
     _drawState = false;
     _drawType = DRAW_STATE_ENAM.DRAW;
 
-    _currentLayerIndex: LAYER_INDEX = ZERO_LAYER;
+    private _currentLayerIndex: LAYER_INDEX = ZERO_LAYER;
+    public get currentLayerIndex() { return this._currentLayerIndex; }
 
-    _cursor = new Cursor(this._el, { offset: { x: 8, y: 8 } });
+    _cursor = new Cursor(this._el, { offset: { x: 0, y: 0 } });
 
     [_onMouseDownHandler](event: MouseEvent) {
       // @TODO improve it!!!
-      if (event.metaKey || event.ctrlKey) return;
+      if (event.metaKey || event.ctrlKey || event.shiftKey) return;
       this._startDraw(event);
       const [x, y] = this._transformEventCoordsToGridCoords(event.offsetX, event.offsetY);
       this._updateTilePlace(x, y, this._currentLayerIndex);
@@ -93,7 +94,11 @@ const DrawableCanvasMixin = (BaseClass: typeof TileableCanvas = TileableCanvas) 
       else if (this._drawType === DRAW_STATE_ENAM.DRAW) {
         for (const [place, tile] of this.tiles.entries()) {
           const [_y, _x] = Point.fromString(place).toArray();
-          this._updateTileByCoord(x + _x, y + _y, z, tile);
+          const resultX = x + _x;
+          const resultY = y + _y;
+          if ((resultX >= 0 && resultX < this._columnsNumber) && (resultY >= 0 && resultY < this._rowsNumber)) {
+            this._updateTileByCoord(resultX, resultY, z, tile);
+          }
         }
       }
     }
@@ -185,7 +190,6 @@ const DrawableCanvasMixin = (BaseClass: typeof TileableCanvas = TileableCanvas) 
         const [level, place] = key.split('>');
         this._layers[level].set(place, tiles[tileId]);
       }
-      console.log('------', this._layers);
     }
   }
 

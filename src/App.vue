@@ -2,7 +2,8 @@
   <div id="app" :class="blockName | bemMods({theme: 'dark'})">
     <div class="nav">
       <router-link to="/">Home</router-link> |
-      <router-link to="/editor">Editor</router-link> |
+      <router-link to="/level-creator">Level creator</router-link> |
+      <router-link to="/flipbook-creator">Flipbook creator</router-link> |
       <router-link to="/game">Game</router-link> |
       <router-link to="/about">About</router-link>
     </div>
@@ -37,9 +38,12 @@ body
   text-align center
   color #2c3e50
   margin 0px
+  display grid
+  grid-template-rows 48px 1fr
+  height 100%
+  width 100%
 
 .nav
-  height 16px
   border-bottom 1px solid black
   padding 8px 0
   margin-bottom 8px

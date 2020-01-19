@@ -19,6 +19,7 @@ module.exports = {
     'arrow-parens': 'off',
     'arrow-body-style': 'off',
     'max-len': ['error', 120],
+    'prefer-destructuring': 'off',
   },
   parserOptions: {
     parser: '@typescript-eslint/parser',

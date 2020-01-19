@@ -1,11 +1,41 @@
-import { DrawableCanvas } from '@/lib/core/canvas/mixins/drawable-canvas';
+import CanvasClassBuilder from '@/lib/core/canvas/builder';
+import Tile from '@/lib/core/utils/tile';
 
-export default class TileMap extends DrawableCanvas {
-  private _imageSrcLink: string = null; // '/content/tilemaps/tilemap.png';
+interface MouseEventPoint {
+  offsetX: number;
+  offsetY: number;
+}
+
+interface MultiselectEvent {
+  from: MouseEventPoint;
+  to: MouseEventPoint;
+}
+
+const BaseClass = new CanvasClassBuilder()
+  .applySelectableMixin()
+  .applyResizeableMixin()
+  .applyTileableMixin()
+  .applyDrawableMixin()
+  .build();
+
+export default class TileMap extends BaseClass {
+  private _imageSrcLink: string = null;
   private _imageSrc: HTMLImageElement = null;
 
-  private _metadataSrcLink: string = null; // '/content/tilemaps/tilemap.json';
+  private _metadataSrcLink: string = null;
   private _metadataSrc: any = null;
+
+  private _onMultiSelect({ from, to }: MultiselectEvent) {
+    const [xFrom, yFrom] = this._transformEventCoordsToGridCoords(from.offsetX, from.offsetY);
+    const [xTo, yTo] = this._transformEventCoordsToGridCoords(to.offsetX, to.offsetY);
+    const tiles = new Map<string, Tile>();
+    for (let y = yFrom, _y = 0; y <= yTo; y += 1, _y += 1) {
+      for (let x = xFrom, _x = 0; x <= xTo; x += 1, _x += 1) {
+        tiles.set(`${_y}|${_x}`, this._getTile(x, y, this.currentLayerIndex));
+      }
+    }
+    this.updateCurrentTiles(tiles);
+  }
 
   constructor(options: any = {}) {
     super(options);
@@ -25,6 +55,12 @@ export default class TileMap extends DrawableCanvas {
     }
 
     this._renderInNextFrame();
+  }
+
+
+  async _initListeners() {
+    await super._initListeners();
+    this.addEventListener(':_multiSelect', this._onMultiSelect, { passive: true });
   }
 
   private async _loadImage() {
@@ -55,12 +91,13 @@ export default class TileMap extends DrawableCanvas {
     if (url == null) return;
 
     this._metadataSrcLink = url;
-
     this._clearLayer('ALL');
 
-    await this._loadMetadata();
-    await this._loadImage();
-    await this.load({ meta: this._metadataSrc, img: this._imageSrc });
+    if (url !== '') {
+      await this._loadMetadata();
+      await this._loadImage();
+      await this.load({ meta: this._metadataSrc, img: this._imageSrc });
+    }
 
     this._renderInNextFrame();
   }

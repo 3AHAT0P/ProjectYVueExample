@@ -2,7 +2,8 @@ import Vue from 'vue';
 import VueRouter from 'vue-router';
 import Home from '../views/Home.vue';
 import Game from '../views/Game.vue';
-import Editor from '../views/Editor.vue';
+import LevelCreator from '../views/LevelCreator.vue';
+import FlipbookCreator from '../views/FlipbookCreator.vue';
 
 Vue.use(VueRouter);
 
@@ -13,9 +14,14 @@ const routes = [
     component: Home,
   },
   {
-    path: '/editor',
-    name: 'editor',
-    component: Editor,
+    path: '/level-creator',
+    name: 'level-creator',
+    component: LevelCreator,
+  },
+  {
+    path: '/flipbook-creator',
+    name: 'flipbook-creator',
+    component: FlipbookCreator,
   },
   {
     path: '/game',

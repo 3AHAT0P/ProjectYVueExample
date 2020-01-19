@@ -27,10 +27,10 @@ const { BASE_URL } = process.env;
 @Component({
   components: { },
 })
-export default class Editor extends Vue {
+export default class TileSetView extends Vue {
   @Prop({ default: () => ({}) }) private mods!: Hash;
 
-  private blockName: string = 'tile-map-editor';
+  private blockName: string = 'tile-set-view';
 
   private mainTileSet: any = null;
   private imageUrl: string = `${BASE_URL}tilesets/main-tile-set.png`;
@@ -68,7 +68,7 @@ export default class Editor extends Vue {
 }
 </script>
 
-<style lang="stylus">
-.editor
+<style lang="stylus" scoped>
+.tile-set-view
   width 100%
 </style>

@@ -34,19 +34,19 @@ export default (value: number, type: string, format: string) => {
   }
   switch (format) {
     case 'DD:HH:MM:SS': {
-      // tslint:disable-next-line
+      /* eslint-disable-next-line */
       return `${time.d > 0 ? time.d.toString().padStart(2, '0') : '00'}:${time.h > 0 ? time.h.toString().padStart(2, '0') : '00'}:${time.m > 0 ? time.m.toString().padStart(2, '0') : '00'}:${time.s > 0 ? time.s.toString().padStart(2, '0') : '00'}`;
     }
     case 'HH:MM:SS': {
-      // tslint:disable-next-line
+      /* eslint-disable-next-line */
       return `${time.h > 0 ? time.h.toString().padStart(2, '0') : '00'}:${time.m > 0 ? time.m.toString().padStart(2, '0') : '00'}:${time.s > 0 ? time.s.toString().padStart(2, '0') : '00'}`;
     }
     case 'MM:SS': {
-      // tslint:disable-next-line
+      /* eslint-disable-next-line */
       return `${time.m > 0 ? time.m.toString().padStart(2, '0') : '00'}:${time.s > 0 ? time.s.toString().padStart(2, '0') : '00'}`;
     }
     case 'SS': {
-      // tslint:disable-next-line
+      /* eslint-disable-next-line */
       return `${time.s > 0 ? time.s.toString().padStart(2, '0') : '00'}`;
     }
     default: {

@@ -1,8 +1,13 @@
-import { TileableCanvas } from '@/lib/core/canvas/mixins/tileable-canvas';
-import SelectableCanvasMixin from '@/lib/core/canvas/mixins/selectable-canvas';
-import ResizeableCanvasMixin from '@/lib/core/canvas/mixins/resizeable-canvas';
+import CanvasClassBuilder from '@/lib/core/canvas/builder';
 import buildEvent from '@/lib/core/utils/build-event';
 import Tile from '@/lib/core/utils/tile';
+
+
+const BaseClass = new CanvasClassBuilder()
+  .applySelectableMixin()
+  .applyResizeableMixin()
+  .applyTileableMixin()
+  .build();
 
 interface MouseEventPoint {
   offsetX: number;
@@ -14,11 +19,11 @@ interface MultiselectEvent {
   to: MouseEventPoint;
 }
 
-export default class TileSet extends (SelectableCanvasMixin(ResizeableCanvasMixin(TileableCanvas)) as any) {
-  private _imageSrcLink: string = null; // 'content/tilesets/main-tile-set.png';
+export default class TileSet extends BaseClass {
+  private _imageSrcLink: string = null;
   private _imageSrc: HTMLImageElement = null;
 
-  private _metadataSrcLink: string = null; // 'content/tilesets/main-tile-set.json';
+  private _metadataSrcLink: string = null;
   private _metadataSrc: any = null;
 
   _onMultiSelect({ from, to }: MultiselectEvent) {
@@ -34,8 +39,6 @@ export default class TileSet extends (SelectableCanvasMixin(ResizeableCanvasMixi
   }
 
   constructor(options: any = {}) {
-    // @ts-ignore
-    // eslint-disable-next-line
     super(Object.assign({}, options, { size: { width: 0, height: 0 } }));
 
     this._imageSrcLink = options.imageUrl;

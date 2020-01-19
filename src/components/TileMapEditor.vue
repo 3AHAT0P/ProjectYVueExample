@@ -1,28 +1,67 @@
 <template>
   <div :class="blockName | bemMods(mods)">
-    <div>
-      <label><span>Tilemap meta URL: </span><input type="text" v-model="metadataUrl"></label>
-      <button @click="load">Load</button>
+    <div :class="blockName | bemElement('sidebar')">
+      <div>
+        <button @click="create">Create new</button>
+      </div>
+      <div :class="blockName | bemElement('sidebar-separator')"></div>
+      <div>
+        <label>
+          <span>Resize (in tiles): </span>
+          <br>
+          <input type="number" :class="blockName | bemElement('size-input')" v-model="tileMapX">
+          X
+          <input type="number" :class="blockName | bemElement('size-input')" v-model="tileMapY">
+        </label>
+        <button @click="resize">Apply</button>
+      </div>
+      <div :class="blockName | bemElement('sidebar-separator')"></div>
+      <div>
+        <label><span>Tilemap meta URL: </span><input type="text" v-model="metadataUrl"></label>
+        <button @click="load">Load</button>
+      </div>
+      <div :class="blockName | bemElement('sidebar-separator')"></div>
+      <div>
+        <span>Draw Level</span>
+        <label>
+          <input type="radio" :value="levelsENUM.BACKGROUND_LAYER" v-model="level">
+          <span>{{levelsENUM.BACKGROUND_LAYER}}</span>
+        </label>
+        <label>
+          <input type="radio" :value="levelsENUM.ZERO_LAYER" v-model="level">
+          <span>{{levelsENUM.ZERO_LAYER}}</span>
+        </label>
+        <label>
+          <input type="radio" :value="levelsENUM.FOREGROUND_LAYER" v-model="level">
+          <span>{{levelsENUM.FOREGROUND_LAYER}}</span>
+        </label>
+      </div>
+      <div>
+        <button @click="clearCurrentLayer">Clear current layer</button>
+        <button @click="clearAll">Clear all layers</button>
+      </div>
+      <div :class="blockName | bemElement('sidebar-separator')"></div>
+      <div>
+        <span>Visible Levels</span>
+        <label>
+          <input type="checkbox" :value="levelsENUM.BACKGROUND_LAYER" v-model="visibleLevels">
+          <span>{{levelsENUM.BACKGROUND_LAYER}}</span>
+        </label>
+        <label>
+          <input type="checkbox" :value="levelsENUM.ZERO_LAYER" v-model="visibleLevels">
+          <span>{{levelsENUM.ZERO_LAYER}}</span>
+        </label>
+        <label>
+          <input type="checkbox" :value="levelsENUM.FOREGROUND_LAYER" v-model="visibleLevels">
+          <span>{{levelsENUM.FOREGROUND_LAYER}}</span>
+        </label>
+      </div>
+      <div :class="blockName | bemElement('sidebar-separator')"></div>
+      <button @click="save">Save tilemap</button>
     </div>
-    <div>
-      <span>Draw Level</span>
-      <label>
-        <input type="radio" :value="levelsENUM.BACKGROUND_LAYER" v-model="level">
-        <span>{{levelsENUM.BACKGROUND_LAYER}}</span>
-      </label>
-      <label>
-        <input type="radio" :value="levelsENUM.ZERO_LAYER" v-model="level">
-        <span>{{levelsENUM.ZERO_LAYER}}</span>
-      </label>
-      <label>
-        <input type="radio" :value="levelsENUM.FOREGROUND_LAYER" v-model="level">
-        <span>{{levelsENUM.FOREGROUND_LAYER}}</span>
-      </label>
-      <button @click="clearCurrentLayer">Clear current layer</button>
-      <button @click="clearAll">Clear all layers</button>
+    <div :class="blockName | bemElement('body')">
+      <canvas key="canvas" :class="blockName | bemElement('tile-map')" ref="canvas"></canvas>
     </div>
-    <canvas key="canvas" :class="blockName | bemElement('tile-map') | bemMods(mods)" ref="canvas"></canvas>
-    <button @click="save">Save</button>
   </div>
 </template>
 
@@ -53,7 +92,7 @@ const { BASE_URL } = process.env;
 @Component({
   components: { },
 })
-export default class Editor extends Vue {
+export default class TileMapEditor extends Vue {
   @Prop({ default: () => ({}) }) private mods!: Hash;
   @Prop({ default: () => (new Map()) }) private tiles!: Map<string, Tile>;
 
@@ -64,6 +103,10 @@ export default class Editor extends Vue {
 
   private levelsENUM: any = null;
   private level: LAYER_INDEX = ZERO_LAYER;
+  private visibleLevels: LAYER_INDEX[] = [BACKGROUND_LAYER, ZERO_LAYER, FOREGROUND_LAYER];
+
+  private tileMapX: number = 32;
+  private tileMapY: number = 32;
 
   created() {
     Vue.set(this, 'levelsENUM', {
@@ -81,7 +124,14 @@ export default class Editor extends Vue {
     this.mainTileMap = await MainTileMap.create({
       el: this.$refs.canvas,
       metadataUrl: this.metadataUrl,
+      size: {
+        width: this.tileMapX,
+        height: this.tileMapY,
+      },
     });
+
+    this.tileMapX = this.mainTileMap.sizeInTiles.x;
+    this.tileMapY = this.mainTileMap.sizeInTiles.y;
   }
 
   @Watch('tiles')
@@ -92,6 +142,11 @@ export default class Editor extends Vue {
   @Watch('level')
   private onLevelChange(level: LAYER_INDEX) {
     this.mainTileMap.updateCurrentLayerIndex(level);
+  }
+
+  @Watch('visibleLevels')
+  private onVisibleLevelChange(visibleLevels: LAYER_INDEX[]) {
+    this.mainTileMap.updateVisibleLayers(visibleLevels);
   }
 
   async save() {
@@ -118,6 +173,18 @@ export default class Editor extends Vue {
     }
   }
 
+  async create() {
+    try {
+      await this.mainTileMap.updateMetadataUrl('');
+    } catch (error) {
+      console.error('URL is invalid!');
+    }
+  }
+
+  async resize() {
+    this.mainTileMap.updateTilesCount(Number(this.tileMapX), Number(this.tileMapY));
+  }
+
   clearCurrentLayer() {
     this.mainTileMap.clearLayer(this.level);
   }
@@ -128,7 +195,33 @@ export default class Editor extends Vue {
 }
 </script>
 
-<style lang="stylus">
-.editor
+<style lang="stylus" scoped>
+.tile-map-editor
+  display grid
   width 100%
+  grid-template-columns 200px auto
+  grid-template-rows repeat(9, 64px) auto
+  grid-gap 0 16px
+
+  &__sidebar
+    position sticky
+    display grid
+    grid-gap 16px
+    text-align left
+
+  &__sidebar-separator
+    width 100%
+    height 1px
+    background-color hsla(0, 0%, 0%, .1)
+
+  &__body
+    overflow auto
+    grid-column 2/3
+    grid-row 1/10
+
+  // &__tile-map
+
+  &__size-input
+    width 5em
+
 </style>
