@@ -1,8 +1,8 @@
-import Point from '@/lib/core/utils/point';
-import Tile from '@/lib/core/utils/tile';
-import Cursor from '@/lib/core/utils/cursor';
+import Point from '@/lib/core/utils/classes/Point';
+import Tile from '@/lib/core/utils/classes/Tile';
+import Cursor from '@/lib/core/utils/classes/Cursor';
 
-import CustomCanvas from '../canvas';
+import Canvas from '..';
 
 import TileableCanvasMixin, {
   TileableCanvas,
@@ -10,7 +10,7 @@ import TileableCanvasMixin, {
   ZERO_LAYER,
   FOREGROUND_LAYER,
   LAYER_INDEX,
-} from './tileable-canvas';
+} from './tileableCanvas';
 
 const _onMouseEnterHandler = Symbol('_onMouseEnterHandler');
 const _onMouseLeaveHandler = Symbol('_onMouseLeaveHandler');
@@ -27,8 +27,8 @@ const DRAW_STATE_ENAM = {
 };
 
 const DrawableCanvasMixin = (BaseClass: typeof TileableCanvas = TileableCanvas) => {
-  if (!((BaseClass as any) === CustomCanvas || CustomCanvas.isPrototypeOf(BaseClass))) {
-    throw new Error('BaseClass isn\'t prototype of CustomCanvas!');
+  if (!((BaseClass as any) === Canvas || Canvas.isPrototypeOf(BaseClass))) {
+    throw new Error('BaseClass isn\'t prototype of Canvas!');
   }
   if (!(Array.isArray(BaseClass._metaClassNames) && BaseClass._metaClassNames.includes(Symbol.for('TileableCanvas')))) {
     // eslint-disable-next-line no-param-reassign
@@ -136,14 +136,17 @@ const DrawableCanvasMixin = (BaseClass: typeof TileableCanvas = TileableCanvas) 
     }
 
     async save() {
+      // @ts-ignore
+      const sizeMultiplier = this.sizeMultiplier || 1;
+
       const json: any = {
         uniqTiles: {},
         tileHash: {},
         tileMapSize: {
-          width: this.width,
-          height: this.height,
+          width: this.width / sizeMultiplier,
+          height: this.height / sizeMultiplier,
         },
-        version: '0.4.0',
+        version: '0.4.1',
       };
 
       for (const [key, tile] of this._layers[BACKGROUND_LAYER].entries()) {
@@ -164,27 +167,18 @@ const DrawableCanvasMixin = (BaseClass: typeof TileableCanvas = TileableCanvas) 
       return { meta: json };
     }
 
-    async load({ meta, img }: any) {
-      if (meta.version !== '0.4.0') throw new Error('Metadata file version mismatch!');
+    async load({ meta, imageHash }: any) {
+      if (meta.version !== '0.4.1') throw new Error('Metadata file version mismatch!');
 
       const { uniqTiles, tileHash: gridCells } = meta;
 
-      const tiles: any = { };
+      const tiles: Hash<Tile> = {};
 
-      const promises = [];
       for (const [id, tileMeta] of Object.entries<any>(uniqTiles)) {
-        const source = {
-          data: img,
-          url: tileMeta.sourceSrc,
-          tileSize: { ...this._tileSize },
-        };
+        tileMeta.source.data = imageHash[tileMeta.source.url];
 
-        promises.push(
-          Tile.fromTileSet(source, { id, sourceCoords: tileMeta.sourceCoords, size: { ...this._tileSize } })
-            .then((tile: Tile) => { tiles[id] = tile; }),
-        );
+        tiles[id] = Tile.fromTileMeta(tileMeta, this._tileSize);
       }
-      await Promise.all(promises);
 
       for (const [key, tileId] of Object.entries<any>(gridCells)) {
         const [level, place] = key.split('>');

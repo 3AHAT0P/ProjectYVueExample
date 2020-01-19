@@ -1,9 +1,9 @@
-import Canvas from './canvas';
+import Canvas from '.';
 
-import SelectableCanvasMixin from './mixins/selectable-canvas';
-import ResizeableCanvasMixin from './mixins/resizeable-canvas';
-import TileableCanvasMixin from './mixins/tileable-canvas';
-import DrawableCanvasMixin from './mixins/drawable-canvas';
+import SelectableCanvasMixin from './mixins/selectableCanvas';
+import ResizeableCanvasMixin from './mixins/resizeableCanvas';
+import TileableCanvasMixin from './mixins/tileableCanvas';
+import DrawableCanvasMixin from './mixins/drawableCanvas';
 
 const MIXINS: Hash = {
   selectable: SelectableCanvasMixin,

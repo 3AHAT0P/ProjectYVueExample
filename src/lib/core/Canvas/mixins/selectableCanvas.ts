@@ -1,6 +1,6 @@
-import buildEvent from '@/lib/core/utils/build-event';
+import buildEvent from '@/lib/core/utils/buildEvent';
 
-import Canvas from '../canvas';
+import Canvas from '..';
 
 const _onMouseDownHandler = Symbol('_onMouseDownHandler');
 const _onMouseUpHandler = Symbol('_onMouseUpHandler');

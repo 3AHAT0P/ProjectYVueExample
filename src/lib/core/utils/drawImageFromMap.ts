@@ -1,6 +1,6 @@
-import Tile from './tile';
-import Point from './point';
-import getTilesRectSizes from './get-tiles-rect-size';
+import Tile from './classes/Tile';
+import Point from './classes/Point';
+import getTilesRectSizes from './getTilesRectSizes';
 
 export default (
   tiles: Map<string, Tile>,

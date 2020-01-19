@@ -17,10 +17,10 @@ import {
 } from 'vue-property-decorator';
 import { State, Getter, Mutation } from 'vuex-class';
 
-import MainTileSet from '@/lib/core/tileset';
+import TileSet from '@/lib/core/TileSet';
 
-import Point from '@/lib/core/utils/point';
-import Tile from '@/lib/core/utils/tile';
+import Point from '@/lib/core/utils/classes/Point';
+import Tile from '@/lib/core/utils/classes/Tile';
 
 const { BASE_URL } = process.env;
 
@@ -50,7 +50,7 @@ export default class TileSetView extends Vue {
   }
 
   async init() {
-    this.mainTileSet = await MainTileSet.create({
+    this.mainTileSet = await TileSet.create({
       el: this.$refs.canvas,
       imageUrl: this.imageUrl,
     });

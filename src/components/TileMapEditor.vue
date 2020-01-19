@@ -74,18 +74,17 @@ import {
 } from 'vue-property-decorator';
 import { State, Getter, Mutation } from 'vuex-class';
 
-import MainTileMap from '@/lib/core/tilemap';
-
+import TileMap from '@/lib/core/TileMap';
 
 import {
   BACKGROUND_LAYER,
   ZERO_LAYER,
   FOREGROUND_LAYER,
   LAYER_INDEX,
-} from '@/lib/core/canvas/mixins/tileable-canvas';
+} from '@/lib/core/Canvas/mixins/tileableCanvas';
 
-import Point from '@/lib/core/utils/point';
-import Tile from '@/lib/core/utils/tile';
+import Point from '@/lib/core/utils/classes/Point';
+import Tile from '@/lib/core/utils/classes/Tile';
 
 const { BASE_URL } = process.env;
 
@@ -108,6 +107,12 @@ export default class TileMapEditor extends Vue {
   private tileMapX: number = 32;
   private tileMapY: number = 32;
 
+  constructor(...args: any) {
+    super(...args);
+
+    this.onMultiSelect = this.onMultiSelect.bind(this);
+  }
+
   created() {
     Vue.set(this, 'levelsENUM', {
       BACKGROUND_LAYER,
@@ -121,7 +126,7 @@ export default class TileMapEditor extends Vue {
   }
 
   async init() {
-    this.mainTileMap = await MainTileMap.create({
+    this.mainTileMap = await TileMap.create({
       el: this.$refs.canvas,
       metadataUrl: this.metadataUrl,
       size: {
@@ -132,6 +137,8 @@ export default class TileMapEditor extends Vue {
 
     this.tileMapX = this.mainTileMap.sizeInTiles.x;
     this.tileMapY = this.mainTileMap.sizeInTiles.y;
+
+    this.mainTileMap.addEventListener(':multiSelect', this.onMultiSelect);
   }
 
   @Watch('tiles')
@@ -192,6 +199,10 @@ export default class TileMapEditor extends Vue {
   clearAll() {
     this.mainTileMap.clearLayer('ALL');
   }
+
+  onMultiSelect({ tiles }: any) {
+    if (tiles != null) this.$emit('tilesChanged', tiles);
+  }
 }
 </script>
 
@@ -207,6 +218,7 @@ export default class TileMapEditor extends Vue {
     position sticky
     display grid
     grid-gap 16px
+    padding 0 16px
     text-align left
 
   &__sidebar-separator

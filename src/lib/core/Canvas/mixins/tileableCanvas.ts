@@ -1,8 +1,8 @@
-import buildEvent from '@/lib/core/utils/build-event';
-import Point from '@/lib/core/utils/point';
-import Tile from '@/lib/core/utils/tile';
+import Point from '@/lib/core/utils/classes/Point';
+import Tile from '@/lib/core/utils/classes/Tile';
+import buildEvent from '@/lib/core/utils/buildEvent';
 
-import Canvas from '../canvas';
+import Canvas from '..';
 
 const _onMouseMoveHandler = Symbol('_onMouseMoveHandler');
 const _onMouseOutHandler = Symbol('_onMouseOutHandler');
@@ -220,10 +220,7 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
         },
       };
 
-      this._hoverTile = await Tile.fromTileSet(
-        source,
-        { sourceCoords: { x: 0, y: 0 }, size: { ...this._tileSize } },
-      );
+      this._hoverTile = Tile.fromTileMeta({ source, sourceRegion: { x: 0, y: 0 } }, this._tileSize);
     }
 
     protected _resize(multiplier: number) {

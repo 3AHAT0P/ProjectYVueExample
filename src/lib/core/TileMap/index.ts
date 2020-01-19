@@ -1,5 +1,6 @@
-import CanvasClassBuilder from '@/lib/core/canvas/builder';
-import Tile from '@/lib/core/utils/tile';
+import CanvasClassBuilder from '@/lib/core/Canvas/CanvasClassBuilder';
+import Tile from '@/lib/core/utils/classes/Tile';
+import buildEvent from '@/lib/core/utils/buildEvent';
 
 interface MouseEventPoint {
   offsetX: number;
@@ -19,8 +20,7 @@ const BaseClass = new CanvasClassBuilder()
   .build();
 
 export default class TileMap extends BaseClass {
-  private _imageSrcLink: string = null;
-  private _imageSrc: HTMLImageElement = null;
+  private _tileSets: Hash<HTMLImageElement> = {};
 
   private _metadataSrcLink: string = null;
   private _metadataSrc: any = null;
@@ -31,10 +31,15 @@ export default class TileMap extends BaseClass {
     const tiles = new Map<string, Tile>();
     for (let y = yFrom, _y = 0; y <= yTo; y += 1, _y += 1) {
       for (let x = xFrom, _x = 0; x <= xTo; x += 1, _x += 1) {
-        tiles.set(`${_y}|${_x}`, this._getTile(x, y, this.currentLayerIndex));
+        const tile = this._getTile(x, y, this.currentLayerIndex);
+        if (tile != null) tiles.set(`${_y}|${_x}`, tile);
+        else _x -= 1;
+        if (x === xTo && _x <= 0) _y -= 1;
       }
     }
+    if (tiles.size === 0) return;
     this.updateCurrentTiles(tiles);
+    this.dispatchEvent(buildEvent(':multiSelect', null, { tiles }));
   }
 
   constructor(options: any = {}) {
@@ -48,8 +53,8 @@ export default class TileMap extends BaseClass {
 
     try {
       await this._loadMetadata();
-      await this._loadImage();
-      await this.load({ meta: this._metadataSrc, img: this._imageSrc });
+      await this._loadImages();
+      await this.load({ meta: this._metadataSrc, imageHash: this._tileSets });
     } catch (error) {
       console.error(error);
     }
@@ -63,26 +68,31 @@ export default class TileMap extends BaseClass {
     this.addEventListener(':_multiSelect', this._onMultiSelect, { passive: true });
   }
 
-  private async _loadImage() {
-    this._imageSrc = new Image();
-    await new Promise((resolve, reject) => {
-      this._imageSrc.onload = resolve;
-      this._imageSrc.onerror = reject;
-      this._imageSrc.src = this._imageSrcLink;
-    });
+  private async _loadImages() {
+    const promises = [];
+
+    for (const [url, _] of Object.entries(this._tileSets)) {
+      this._tileSets[url] = new Image();
+      promises.push(new Promise((resolve, reject) => {
+        this._tileSets[url].onload = resolve;
+        this._tileSets[url].onerror = reject;
+        this._tileSets[url].src = url;
+      }));
+    }
+
+    await Promise.all(promises);
   }
 
   private async _loadMetadata() {
     const metaDataJson = await (await fetch(this._metadataSrcLink)).json();
-    this.updateSize(metaDataJson.tileMapSize.width, metaDataJson.tileMapSize.height);
+    this.updateSize(
+      metaDataJson.tileMapSize.width * this.sizeMultiplier,
+      metaDataJson.tileMapSize.height * this.sizeMultiplier,
+    );
     this._metadataSrc = metaDataJson;
-    const sources: any = {};
     for (const [id, meta] of Object.entries<any>(this._metadataSrc.uniqTiles)) {
-      if (sources[meta.sourceSrc] == null) {
-        sources[meta.sourceSrc] = true;
-        // @TODO: We could have situatuation,
-        // when tile map have tiles from different tileSets
-        this._imageSrcLink = meta.sourceSrc;
+      if (this._tileSets[meta.source.url] == null) {
+        this._tileSets[meta.source.url] = null;
       }
     }
   }
@@ -95,8 +105,8 @@ export default class TileMap extends BaseClass {
 
     if (url !== '') {
       await this._loadMetadata();
-      await this._loadImage();
-      await this.load({ meta: this._metadataSrc, img: this._imageSrc });
+      await this._loadImages();
+      await this.load({ meta: this._metadataSrc, imageHash: this._tileSets });
     }
 
     this._renderInNextFrame();

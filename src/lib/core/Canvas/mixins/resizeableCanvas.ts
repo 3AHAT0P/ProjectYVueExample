@@ -1,4 +1,4 @@
-import Canvas from '../canvas';
+import Canvas from '..';
 
 const INCREASE_SIZE_MULTIPLIER = 2;
 const DECREASE_SIZE_MULTIPLIER = 1 / 2;

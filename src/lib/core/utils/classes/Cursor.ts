@@ -1,7 +1,8 @@
-import Tile from './tile';
-import updateImageColorVolume from './update-image-color-volume';
-import drawImageFromMap from './draw-image-from-map';
-import getTilesRectSizes from './get-tiles-rect-size';
+import updateImageColorVolume from '../updateImageColorVolume';
+import drawImageFromMap from '../drawImageFromMap';
+import getTilesRectSizes from '../getTilesRectSizes';
+
+import Tile from './Tile';
 
 export default class Cursor {
   _el: HTMLElement = null;

@@ -1,6 +1,6 @@
-import CanvasClassBuilder from '@/lib/core/canvas/builder';
-import buildEvent from '@/lib/core/utils/build-event';
-import Tile from '@/lib/core/utils/tile';
+import CanvasClassBuilder from '@/lib/core/Canvas/CanvasClassBuilder';
+import Tile from '@/lib/core/utils/classes/Tile';
+import buildEvent from '@/lib/core/utils/buildEvent';
 
 
 const BaseClass = new CanvasClassBuilder()
@@ -78,15 +78,10 @@ export default class TileSet extends BaseClass {
       url: this._imageSrcLink,
       tileSize: { ...this._tileSize },
     };
-    const promises = [];
     for (let row = 0; row < this._rowsNumber; row += 1) {
-      const y = row * this._tileSize.y;
       for (let col = 0; col < this._columnsNumber; col += 1) {
-        const x = col * this._tileSize.x;
-        promises.push(
-          Tile.fromTileSet(source, { sourceCoords: { x: col, y: row }, size: { ...this._tileSize } })
-            .then((tile: Tile) => this._updateTileByCoord(col, row, '0', tile)),
-        );
+        const tile = Tile.fromTileMeta({ source, sourceRegion: { x: col, y: row } }, this._tileSize);
+        this._updateTileByCoord(col, row, '0', tile);
       }
     }
   }

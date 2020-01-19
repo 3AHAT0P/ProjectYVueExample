@@ -1,7 +1,7 @@
 <template>
   <div :class="blockName | bemMods(mods)">
     <div :class="blockName | bemElement('brush-preview')">
-      Brush tile preview
+      Tile brush preview
       <br>
       <br>
       <canvas ref="brushPreview" style="outline: 1px solid hsla(0, 0%, 0%, .1);"></canvas>
@@ -15,6 +15,7 @@
       key="tileMapEditor"
       :class="blockName | bemElement('tile-map')"
       :tiles="tiles"
+      @tilesChanged="updateTiles"
     ></TileMapEditor>
   </div>
 </template>
@@ -28,11 +29,11 @@ import {
 } from 'vue-property-decorator';
 import { State, Getter, Mutation } from 'vuex-class';
 
-import CanvasClassBuilder from '@/lib/core/canvas/builder';
+import CanvasClassBuilder from '@/lib/core/Canvas/CanvasClassBuilder';
 
-import Point from '@/lib/core/utils/point';
-import Tile from '@/lib/core/utils/tile';
-import drawImageFromMap from '@/lib/core/utils/draw-image-from-map';
+import Point from '@/lib/core/utils/classes/Point';
+import Tile from '@/lib/core/utils/classes/Tile';
+import drawImageFromMap from '@/lib/core/utils/drawImageFromMap';
 
 import TileMapEditor from '@/components/TileMapEditor.vue';
 import TileSetView from '@/components/TileSetView.vue';

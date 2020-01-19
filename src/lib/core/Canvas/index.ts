@@ -1,6 +1,6 @@
 import throttle from 'lodash/throttle';
 
-import buildEvent from '@/lib/core/utils/build-event';
+import buildEvent from '@/lib/core/utils/buildEvent';
 
 /*
   const canvas = await Canvas.create({ el: document.body, size: { width: 64, height: 64 } });
