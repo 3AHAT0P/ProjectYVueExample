@@ -84,6 +84,7 @@ export default class TileMap extends BaseClass {
   }
 
   private async _loadMetadata() {
+    if (this._metadataSrcLink == null || this._metadataSrcLink === '') throw new Error('URL is not settled!');
     const metaDataJson = await (await fetch(this._metadataSrcLink)).json();
     this.updateSize(
       metaDataJson.tileMapSize.width * this.sizeMultiplier,

@@ -9,6 +9,7 @@
     <TileSetView
       key="tileSetView"
       :class="blockName | bemElement('tile-set')"
+      :imageUrl="imageUrl"
       @tilesChanged="updateTiles"
     ></TileSetView>
     <TileMapEditor
@@ -51,6 +52,8 @@ export default class LevelCreator extends Vue {
   private currentTileCanvas: any = null;
 
   private tiles: Map<string, Tile> = null;
+
+  private imageUrl: string = `${BASE_URL}tilesets/main-tile-set.png`;
 
   mounted() {
     this.init();

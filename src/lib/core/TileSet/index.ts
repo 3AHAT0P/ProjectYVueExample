@@ -63,6 +63,7 @@ export default class TileSet extends BaseClass {
   }
 
   async _loadImage() {
+    if (this._imageSrcLink == null || this._imageSrcLink === '') throw new Error('URL is not settled!');
     this._imageSrc = new Image();
     await new Promise((resolve, reject) => {
       this._imageSrc.onload = resolve;
@@ -87,6 +88,7 @@ export default class TileSet extends BaseClass {
   }
 
   async _loadMetadata() {
+    if (this._metadataSrcLink == null || this._metadataSrcLink === '') throw new Error('URL is not settled!');
     this._metadataSrc = await (await fetch(this._metadataSrcLink)).json();
   }
 

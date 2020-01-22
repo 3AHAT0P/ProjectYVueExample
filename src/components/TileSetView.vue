@@ -1,7 +1,7 @@
 <template>
   <div :class="blockName | bemMods(mods)">
     <div>
-      <label><span>Tileset meta URL: </span><input type="text" v-model="imageUrl"></label>
+      <label><span>Tileset meta URL: </span><input type="text" v-model="internalImageUrl"></label>
       <button @click="load">Load</button>
     </div>
     <canvas key="canvas" :class="blockName | bemElement('tile-set') | bemMods(mods)" ref="canvas"></canvas>
@@ -29,16 +29,21 @@ const { BASE_URL } = process.env;
 })
 export default class TileSetView extends Vue {
   @Prop({ default: () => ({}) }) private mods!: Hash;
+  @Prop({ default: () => null as string }) private imageUrl!: string;
 
   private blockName: string = 'tile-set-view';
 
   private mainTileSet: any = null;
-  private imageUrl: string = `${BASE_URL}tilesets/main-tile-set.png`;
+  private internalImageUrl: string = `${BASE_URL}tilesets/main-tile-set.png`;
 
   constructor(...args: any) {
     super(...args);
 
     this.onMultiSelect = this.onMultiSelect.bind(this);
+  }
+
+  created() {
+    if (this.imageUrl != null) this.internalImageUrl = this.imageUrl;
   }
 
   mounted() {
@@ -52,7 +57,7 @@ export default class TileSetView extends Vue {
   async init() {
     this.mainTileSet = await TileSet.create({
       el: this.$refs.canvas,
-      imageUrl: this.imageUrl,
+      imageUrl: this.internalImageUrl,
     });
 
     this.mainTileSet.addEventListener(':multiSelect', this.onMultiSelect);
@@ -60,7 +65,7 @@ export default class TileSetView extends Vue {
 
   async load() {
     try {
-      await this.mainTileSet.updateImageUrl(this.imageUrl);
+      await this.mainTileSet.updateImageUrl(this.internalImageUrl);
     } catch (error) {
       console.error('URL is invalid!');
     }

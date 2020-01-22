@@ -17,7 +17,7 @@
       </div>
       <div :class="blockName | bemElement('sidebar-separator')"></div>
       <div>
-        <label><span>Tilemap meta URL: </span><input type="text" v-model="metadataUrl"></label>
+        <label><span>Metadata file URL: </span><input type="text" v-model="metadataUrl"></label>
         <button @click="load">Load</button>
       </div>
       <div :class="blockName | bemElement('sidebar-separator')"></div>

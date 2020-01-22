@@ -3,6 +3,7 @@
     <div class="nav">
       <router-link to="/">Home</router-link> |
       <router-link to="/level-creator">Level creator</router-link> |
+      <router-link to="/game-object-creator">Game object creator</router-link> |
       <router-link to="/flipbook-creator">Flipbook creator</router-link> |
       <router-link to="/game">Game</router-link> |
       <router-link to="/about">About</router-link>
