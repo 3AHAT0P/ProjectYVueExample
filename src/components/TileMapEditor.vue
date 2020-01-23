@@ -19,6 +19,7 @@
       <div>
         <label><span>Metadata file URL: </span><input type="text" v-model="metadataUrl"></label>
         <button @click="load">Load</button>
+        <button @click="loadFromLS">Load from LocalStorage</button>
       </div>
       <div :class="blockName | bemElement('sidebar-separator')"></div>
       <div>
@@ -57,7 +58,8 @@
         </label>
       </div>
       <div :class="blockName | bemElement('sidebar-separator')"></div>
-      <button @click="save">Save tilemap</button>
+      <button @click="save">Save tilemap as File</button>
+      <button @click="saveToLS">Save tilemap to LocalStorage</button>
     </div>
     <div :class="blockName | bemElement('body')">
       <canvas key="canvas" :class="blockName | bemElement('tile-map')" ref="canvas"></canvas>
@@ -172,11 +174,25 @@ export default class TileMapEditor extends Vue {
     a.remove();
   }
 
+  async saveToLS() {
+    const { meta } = await this.mainTileMap.save();
+    localStorage.setItem('MainTileMap', JSON.stringify(meta));
+  }
+
   async load() {
     try {
       await this.mainTileMap.updateMetadataUrl(this.metadataUrl);
     } catch (error) {
       console.error('URL is invalid!');
+    }
+  }
+
+  async loadFromLS() {
+    try {
+      const data = JSON.parse(localStorage.getItem('MainTileMap'));
+      await this.mainTileMap.updateMetadata(data);
+    } catch (error) {
+      console.error('Data is invalid!');
     }
   }
 

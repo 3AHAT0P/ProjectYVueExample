@@ -86,6 +86,12 @@ export default class TileMap extends BaseClass {
   private async _loadMetadata() {
     if (this._metadataSrcLink == null || this._metadataSrcLink === '') throw new Error('URL is not settled!');
     const metaDataJson = await (await fetch(this._metadataSrcLink)).json();
+    this._updateMetadata(metaDataJson);
+  }
+
+  public async _updateMetadata(metaDataJson: any) {
+    if (metaDataJson == null) return;
+
     this.updateSize(
       metaDataJson.tileMapSize.width * this.sizeMultiplier,
       metaDataJson.tileMapSize.height * this.sizeMultiplier,
@@ -109,6 +115,19 @@ export default class TileMap extends BaseClass {
       await this._loadImages();
       await this.load({ meta: this._metadataSrc, imageHash: this._tileSets });
     }
+
+    this._renderInNextFrame();
+  }
+
+  public async updateMetadata(metaDataJson: any) {
+    if (metaDataJson == null) return;
+
+    this._metadataSrcLink = null;
+    this._clearLayer('ALL');
+
+    await this._updateMetadata(metaDataJson);
+    await this._loadImages();
+    await this.load({ meta: this._metadataSrc, imageHash: this._tileSets });
 
     this._renderInNextFrame();
   }

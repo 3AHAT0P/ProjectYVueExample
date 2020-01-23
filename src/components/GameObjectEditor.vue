@@ -6,6 +6,10 @@
       </div>
       <div :class="blockName | bemElement('sidebar-separator')"></div>
       <div>
+        <label><span>Name: </span><input type="text" v-model="name"></label>
+      </div>
+      <div :class="blockName | bemElement('sidebar-separator')"></div>
+      <div>
         <label>
           <span>Resize (in pixels): </span>
           <br>
@@ -19,6 +23,7 @@
       <div>
         <label><span>Metadata file URL: </span><input type="text" v-model="metadataUrl"></label>
         <button @click="load">Load</button>
+        <button @click="loadFromLS">Load from LocalStorage</button>
       </div>
       <div :class="blockName | bemElement('sidebar-separator')"></div>
       <div>
@@ -60,7 +65,7 @@
         </label>
       </div>
       <div :class="blockName | bemElement('sidebar-separator')"></div>
-      <button @click="save">Save tilemap</button>
+      <button @click="saveToLS">Save to LocalStorage</button>
     </div>
     <div :class="blockName | bemElement('body')">
       <canvas key="canvas" :class="blockName | bemElement('game-object')" ref="canvas"></canvas>
@@ -265,6 +270,22 @@ class GameObjectCanvas extends Canvas {
     this._cacheCtx.imageSmoothingEnabled = this._imageSmoothingEnabled;
     cb(this._cache.getContext('2d'));
   }
+
+  public save() {
+    const data = this._cache.toDataURL('image/png', 1);
+    const hitBoxes = this._hitBoxes;
+    return { data, hitBoxes };
+  }
+
+  public load({ data, hitBoxes }: any) {
+    const img = new Image();
+    img.onload = () => {
+      this._cacheCtx.drawImage(img, 0, 0, img.width, img.height, 0, 0, this._cache.width, this._cache.height);
+      this._renderInNextFrame();
+    };
+    img.src = data;
+    this._hitBoxes = hitBoxes;
+  }
 }
 
 @Component({
@@ -278,7 +299,7 @@ export default class GameObjectEditor extends Vue {
 
   private gameObjectCanvas: any = null;
 
-  private metadataUrl: string = '';
+  private metadataUrl: string = `${BASE_URL}game-objects/player-mage.json`;
 
   private levelsENUM: any = null;
   private level: LAYER_INDEX = ZERO_LAYER;
@@ -288,6 +309,8 @@ export default class GameObjectEditor extends Vue {
   private tileMapY: number = 128;
 
   private hitBoxes: any[] = [];
+
+  private name: string = '';
 
   constructor(...args: any[]) {
     super(...args);
@@ -366,28 +389,27 @@ export default class GameObjectEditor extends Vue {
     this.gameObjectCanvas.dispatchEvent(new Event(':renderRequest'));
   }
 
-  async save() {
-    // const a = document.createElement('a');
-    // a.style.display = 'none';
-    // document.body.appendChild(a);
-
-    // const { meta } = await this.mainTileMap.save();
-
-    // const blob = new Blob([JSON.stringify(meta)], { type: 'application/json' });
-    // a.href = URL.createObjectURL(blob);
-    // a.download = 'tilemap.json';
-    // a.click();
-    // URL.revokeObjectURL(a.href);
-
-    // a.remove();
+  async saveToLS() {
+    const meta = this.gameObjectCanvas.save();
+    localStorage.setItem(this.name, JSON.stringify(meta));
   }
 
   async load() {
-    // try {
-    //   await this.mainTileMap.updateMetadataUrl(this.metadataUrl);
-    // } catch (error) {
-    //   console.error('URL is invalid!');
-    // }
+    try {
+      const meta = await (await fetch(this.metadataUrl)).json();
+      this.gameObjectCanvas.load(meta);
+    } catch (error) {
+      console.error('URL is invalid!');
+    }
+  }
+
+  async loadFromLS() {
+    try {
+      const meta = JSON.parse(localStorage.getItem(this.name));
+      this.gameObjectCanvas.load(meta);
+    } catch (error) {
+      console.error('Data is invalid!');
+    }
   }
 
   async create() {
