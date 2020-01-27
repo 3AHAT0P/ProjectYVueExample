@@ -6,7 +6,7 @@ declare global {
   interface ISource {
     data?: HTMLImageElement | HTMLCanvasElement;
     url?: string;
-    tileSize?: { x: number; y: number; };
+    tileSize?: IPoint;
   }
 }
 
@@ -18,7 +18,7 @@ interface ITileConstructor {
 interface ITileMeta {
   id?: string;
   source: ISource;
-  sourceRegion: Point | { x: number; y: number; };
+  sourceRegion: Point | IPoint;
 }
 
 export default class Tile {
@@ -33,7 +33,7 @@ export default class Tile {
     return instance;
   }
 
-  static fromTileMeta(meta: ITileMeta, tileSize: { x: number; y: number; }, imageCache: Hash = {}) {
+  static fromTileMeta(meta: ITileMeta, tileSize: IPoint, imageCache: Hash = {}) {
     // eslint-disable-next-line no-param-reassign
     if (meta.source.data == null) meta.source.data = imageCache[meta.source.url];
     const instance = new this({
@@ -44,7 +44,7 @@ export default class Tile {
   }
 
 
-  // static async fromTileSet(source: ISource, from: { x: number; y: number; }, tileOptions: any) {
+  // static async fromTileSet(source: ISource, from: IPoint, tileOptions: any) {
   //   // const bitmap = await createImageBitmap(source.data, from.x, from.y, source.tileSize.x, source.tileSize.x);
   //   const instance = new this({
   //     bitmap: null,

@@ -2,13 +2,20 @@ const DELIMITER = '|';
 
 type numOrStr = number | string;
 
+declare global {
+  interface IPoint {
+    x: number;
+    y: number;
+  }
+}
+
 interface IPointConstructor {
   new(x: number, y: number): Point;
   fromString(value: string): Point;
   isEqual(x1: numOrStr, y1: numOrStr, x2: numOrStr, y2: numOrStr): boolean;
 }
 
-export default class Point {
+export default class Point implements IPoint {
   public static fromString(value: string) {
     const [x, y] = value.split(DELIMITER);
     return new this(Number(x), Number(y));

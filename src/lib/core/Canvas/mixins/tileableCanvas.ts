@@ -159,6 +159,8 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
         cache.isDirty = false;
         cache.ctx.clearRect(0, 0, cache.canvas.width, cache.canvas.height);
         for (const [place, tile] of layer.entries()) {
+          // eslint-disable-next-line no-param-reassign
+          cache.ctx.imageSmoothingEnabled = this._imageSmoothingEnabled;
           const [y, x] = Point.fromString(place).toArray();
           cache.ctx.drawImage(
             tile.source.data,
@@ -199,6 +201,7 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
     }
 
     protected _render(time: number, clearRender = false) {
+      this._ctx.imageSmoothingEnabled = this._imageSmoothingEnabled;
       if (!this._visibleLayersChanged) {
         let reallyNeedRender = false;
         for (const layerIndex of this._visibleLayers) {
@@ -210,7 +213,6 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
         if (!reallyNeedRender) return;
       }
       // @TODO That time might be used for checking time between renders
-      this._ctx.imageSmoothingEnabled = this._imageSmoothingEnabled;
       this.clear();
       this._drawTiles();
       this.dispatchEvent(buildEvent(':render', null, { ctx: this._ctx }));

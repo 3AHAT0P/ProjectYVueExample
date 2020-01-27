@@ -17,6 +17,9 @@ export default (
   const tileWidth = canvasWidth / (contain ? maxAxios : xCount);
   const tileHeight = canvasHeight / (contain ? maxAxios : yCount);
 
+
+  // eslint-disable-next-line no-param-reassign
+  ctx.imageSmoothingEnabled = false;
   for (const [place, tile] of tiles.entries()) {
     const [y, x] = Point.fromString(place).toArray();
     ctx.drawImage(
