@@ -3,7 +3,7 @@ import Point from './classes/Point';
 import getTilesRectSizes from './getTilesRectSizes';
 
 export default (
-  tiles: Map<string, Tile>,
+  tiles: Map<string, IRenderedObject>,
   ctx: CanvasRenderingContext2D,
   width: number = 64,
   height: number = 64,
@@ -22,12 +22,13 @@ export default (
   ctx.imageSmoothingEnabled = false;
   for (const [place, tile] of tiles.entries()) {
     const [y, x] = Point.fromString(place).toArray();
+    const tileBoundingRect = tile.sourceBoundingRect;
     ctx.drawImage(
-      tile.source.data,
-      tile.sourceRegion.x * tile.source.tileSize.x,
-      tile.sourceRegion.y * tile.source.tileSize.y,
-      tile.source.tileSize.x,
-      tile.source.tileSize.y,
+      tile.source,
+      tileBoundingRect.x,
+      tileBoundingRect.y,
+      tileBoundingRect.width,
+      tileBoundingRect.height,
       x * tileWidth,
       y * tileHeight,
       tileWidth,

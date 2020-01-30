@@ -3,7 +3,7 @@
     <div :class="blockName | bemElement('sidebar')">
       <div>
         Load from LS:
-        <div v-for="gameObject in savedGameObjects" :key="gameObject.name">
+        <div v-for="gameObject in savedGameObjects" :key="gameObject[1].name">
           {{gameObject[0]}}: <button @click="loadFromLS(gameObject)">Load</button>
         </div>
       </div>
@@ -144,19 +144,20 @@ export default class GameObjectEditor extends Vue {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     const { xCount, yCount } = getTilesRectCount(tiles);
-    const tileWidth = tiles.get('0|0').size.x;
-    const tileHeight = tiles.get('0|0').size.y;
+    const tileWidth = tiles.get('0|0').sourceBoundingRect.height;
+    const tileHeight = tiles.get('0|0').sourceBoundingRect.width;
     canvas.width = xCount * tileWidth;
     canvas.height = yCount * tileHeight;
     ctx.imageSmoothingEnabled = false;
     for (const [place, tile] of tiles.entries()) {
       const [y, x] = Point.fromString(place).toArray();
+      const tileBoundingRect = tile.sourceBoundingRect;
       ctx.drawImage(
-        tile.source.data,
-        tile.sourceRegion.x * tile.source.tileSize.x,
-        tile.sourceRegion.y * tile.source.tileSize.y,
-        tile.source.tileSize.x,
-        tile.source.tileSize.y,
+        tile.source,
+        tileBoundingRect.x,
+        tileBoundingRect.y,
+        tileBoundingRect.width,
+        tileBoundingRect.height,
         x * tileWidth,
         y * tileHeight,
         tileWidth,
@@ -187,6 +188,7 @@ export default class GameObjectEditor extends Vue {
     const name = `GameObject:${this.name}`;
     const meta = this.gameObjectCanvas.save();
     localStorage.setItem(name, JSON.stringify(meta));
+    this.getListGameObjects();
   }
 
   async load() {

@@ -1,7 +1,7 @@
 import Tile from './classes/Tile';
 import Point from './classes/Point';
 
-export default (tiles: Map<string, Tile>) => {
+export default (tiles: Map<string, IRenderedObject>) => {
   /**
    * correct way to detect rect size
    let maxX = 0;

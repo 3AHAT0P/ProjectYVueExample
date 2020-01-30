@@ -6,6 +6,12 @@
       <br>
       <canvas ref="brushPreview" style="outline: 1px solid hsla(0, 0%, 0%, .1);"></canvas>
     </div>
+    <div>
+      GameObject List:
+      <div v-for="gameObject in savedGameObjects" :key="gameObject.name">
+        {{gameObject.name}}: <button @click="selectGameObject(gameObject)">Choose</button>
+      </div>
+    </div>
     <TileSetView
       key="tileSetView"
       :class="blockName | bemElement('tile-set')"
@@ -15,7 +21,7 @@
     <TileMapEditor
       key="tileMapEditor"
       :class="blockName | bemElement('tile-map')"
-      :tiles="tiles"
+      :tiles="renderedObject"
       @tilesChanged="updateTiles"
     ></TileMapEditor>
   </div>
@@ -31,6 +37,7 @@ import {
 import { State, Getter, Mutation } from 'vuex-class';
 
 import CanvasClassBuilder from '@/lib/core/Canvas/CanvasClassBuilder';
+import GameObject from '@/lib/core/GameObject';
 
 import Point from '@/lib/core/utils/classes/Point';
 import Tile from '@/lib/core/utils/classes/Tile';
@@ -38,6 +45,7 @@ import drawImageFromMap from '@/lib/core/utils/drawImageFromMap';
 
 import TileMapEditor from '@/components/TileMapEditor.vue';
 import TileSetView from '@/components/TileSetView.vue';
+import { localStorageEntries } from '@/utils';
 
 const { BASE_URL } = process.env;
 
@@ -51,12 +59,15 @@ export default class LevelCreator extends Vue {
 
   private currentTileCanvas: any = null;
 
-  private tiles: Map<string, Tile> = null;
+  private renderedObject: Map<string, IRenderedObject> = null;
 
   private imageUrl: string = `${BASE_URL}tilesets/main-tile-set.png`;
 
+  private savedGameObjects: IRenderedObject[] = [];
+
   mounted() {
     this.init();
+    this.getListGameObjects();
   }
 
   async init() {
@@ -66,10 +77,34 @@ export default class LevelCreator extends Vue {
     });
   }
 
+  getListGameObjects() {
+    this.savedGameObjects = [];
+    for (const [key, value] of localStorageEntries()) {
+      if (key.startsWith('GameObject:')) {
+        const gameObject = GameObject.fromMeta(JSON.parse(value));
+        this.savedGameObjects.push(gameObject);
+      }
+    }
+  }
+
+  selectGameObject(gameObject: GameObject) {
+    this.renderedObject = new Map([[new Point(0, 0).toString(), gameObject]]);
+    this.currentTileCanvas.addEventListener(':render', (event: any) => {
+      drawImageFromMap(
+        this.renderedObject,
+        event.ctx,
+        this.currentTileCanvas.width,
+        this.currentTileCanvas.height,
+        true,
+      );
+    }, { once: true });
+    this.currentTileCanvas.dispatchEvent(new Event(':renderRequest'));
+  }
+
   updateTiles(tiles: Map<string, Tile>) {
     if (tiles == null) return;
 
-    this.tiles = tiles;
+    this.renderedObject = tiles;
     this.currentTileCanvas.addEventListener(':render', (event: any) => {
       drawImageFromMap(tiles, event.ctx, this.currentTileCanvas.width, this.currentTileCanvas.height, true);
     }, { once: true });

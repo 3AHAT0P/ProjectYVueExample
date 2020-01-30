@@ -1,3 +1,10 @@
+interface IGameObjectMeta {
+  name: string;
+  size: { x: number; y: number; };
+  data: string;
+  hitBoxes: IHitBox[];
+}
+
 interface IHitBoxOptions {
   color: number;
 }
@@ -10,6 +17,12 @@ interface IHitBox {
 }
 
 export default class GameObject implements IRenderedObject {
+  public static fromMeta(meta: IGameObjectMeta) {
+    const instance = new this();
+    instance.load(meta);
+    return instance;
+  }
+
   private _source: HTMLCanvasElement = document.createElement('canvas');
   private _ctx: CanvasRenderingContext2D = this._source.getContext('2d');
 
@@ -83,7 +96,7 @@ export default class GameObject implements IRenderedObject {
     this._drawImage(image);
   }
 
-  public save() {
+  public save(): IGameObjectMeta {
     const data = this._source.toDataURL('image/png', 1);
     const hitBoxes = this._hitBoxes;
     return {
@@ -102,7 +115,7 @@ export default class GameObject implements IRenderedObject {
     size,
     data,
     hitBoxes,
-  }: any) {
+  }: IGameObjectMeta) {
     this._name = name;
     this._source.width = size.x;
     this._source.height = size.y;

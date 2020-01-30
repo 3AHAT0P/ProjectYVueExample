@@ -92,14 +92,14 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
       return layer.get(`${y}|${x}`);
     }
 
-    _updateTileByCoord(x: number, y: number, z: LAYER_INDEX = ZERO_LAYER, tile: Tile) {
+    _updateTileByCoord(x: number, y: number, z: LAYER_INDEX = ZERO_LAYER, tile: IRenderedObject | IVirtualTile) {
       const layer = this._layers[z];
-      // @TODO Optimization
+      // @TODO: Optimization
       this._layersCache[z].isDirty = true;
-
+      // @FIXME: TYPES!
       if (tile != null) {
         if (layer.get(`${y}|${x}`) === tile) return;
-        layer.set(`${y}|${x}`, tile);
+        layer.set(`${y}|${x}`, tile as any);
       } else {
         if (!layer.has(`${y}|${x}`)) return;
         layer.delete(`${y}|${x}`);
@@ -153,29 +153,35 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
     }
 
     _drawLayer(layer: Map<string, Tile>, cache: ILayerCache) {
-      // @TODO Optimization
+      // @TODO: Optimization
       if (cache.isDirty) {
         // eslint-disable-next-line no-param-reassign
         cache.isDirty = false;
         cache.ctx.clearRect(0, 0, cache.canvas.width, cache.canvas.height);
-        for (const [place, tile] of layer.entries()) {
-          // eslint-disable-next-line no-param-reassign
-          cache.ctx.imageSmoothingEnabled = this._imageSmoothingEnabled;
+        // eslint-disable-next-line no-param-reassign
+        cache.ctx.imageSmoothingEnabled = this._imageSmoothingEnabled;
+        // @ts-ignore
+        const sizeMultiplier = this.sizeMultiplier || 1;
+        for (const [place, renderedObject] of layer.entries()) {
+          // eslint-disable-next-line no-continue
+          if ((renderedObject as any).isVirtual) continue;
           const [y, x] = Point.fromString(place).toArray();
+          const tileBoundingRect = renderedObject.sourceBoundingRect;
           cache.ctx.drawImage(
-            tile.source.data,
-            tile.sourceRegion.x * tile.source.tileSize.x,
-            tile.sourceRegion.y * tile.source.tileSize.y,
-            tile.source.tileSize.x,
-            tile.source.tileSize.y,
+            renderedObject.source,
+            tileBoundingRect.x,
+            tileBoundingRect.y,
+            tileBoundingRect.width,
+            tileBoundingRect.height,
             x * this._tileSize.x,
             y * this._tileSize.y,
-            this._tileSize.x,
-            this._tileSize.y,
+            // this._tileSize.x,
+            // this._tileSize.y,
+            tileBoundingRect.width * sizeMultiplier,
+            tileBoundingRect.height * sizeMultiplier,
           );
         }
       }
-
       // Render layer cache
       this._ctx.drawImage(cache.canvas, 0, 0, this._el.width, this._el.height);
     }
@@ -244,15 +250,15 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
       ctx.fillStyle = 'hsla(0, 0%, 0%, .1)';
       ctx.fillRect(0, 0, this._tileSize.x, this._tileSize.y);
 
-      const source: ISource = {
-        data: canvas,
-        tileSize: {
-          x: this._tileSize.x,
-          y: this._tileSize.y,
-        },
+      const source = 'HOVER_TILE_SOURCE';
+      const sourceBoundingRect = {
+        x: 0,
+        y: 0,
+        width: this._tileSize.x,
+        height: this._tileSize.y,
       };
 
-      this._hoverTile = Tile.fromTileMeta({ source, sourceRegion: { x: 0, y: 0 } }, this._tileSize);
+      this._hoverTile = Tile.fromTileMeta({ source, sourceData: canvas, sourceBoundingRect });
     }
 
     protected _resize(multiplier: number) {

@@ -74,14 +74,26 @@ export default class TileSet extends BaseClass {
   }
 
   async _parse() {
-    const source = {
-      data: this._imageSrc,
-      url: this._imageSrcLink,
-      tileSize: { ...this._tileSize },
+    const source = this._imageSrcLink;
+    const sourceData = this._imageSrc;
+    const sourceBoundingRect = {
+      x: 0,
+      y: 0,
+      width: this._tileSize.x,
+      height: this._tileSize.y,
     };
     for (let row = 0; row < this._rowsNumber; row += 1) {
       for (let col = 0; col < this._columnsNumber; col += 1) {
-        const tile = Tile.fromTileMeta({ source, sourceRegion: { x: col, y: row } }, this._tileSize);
+        const tile = Tile.fromTileMeta({
+          source,
+          sourceData,
+          sourceBoundingRect: {
+            x: col * this._tileSize.x,
+            y: row * this._tileSize.y,
+            width: this._tileSize.x,
+            height: this._tileSize.y,
+          },
+        });
         this._updateTileByCoord(col, row, '0', tile);
       }
     }
