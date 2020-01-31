@@ -74,19 +74,13 @@ export default class TileSet extends BaseClass {
   }
 
   async _parse() {
-    const source = this._imageSrcLink;
-    const sourceData = this._imageSrc;
-    const sourceBoundingRect = {
-      x: 0,
-      y: 0,
-      width: this._tileSize.x,
-      height: this._tileSize.y,
-    };
+    const sourceURL = this._imageSrcLink;
+    const source = this._imageSrc;
     for (let row = 0; row < this._rowsNumber; row += 1) {
       for (let col = 0; col < this._columnsNumber; col += 1) {
-        const tile = Tile.fromTileMeta({
+        const tile = new Tile({
           source,
-          sourceData,
+          sourceURL,
           sourceBoundingRect: {
             x: col * this._tileSize.x,
             y: row * this._tileSize.y,

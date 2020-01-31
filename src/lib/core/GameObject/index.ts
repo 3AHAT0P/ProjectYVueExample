@@ -1,50 +1,50 @@
-interface IGameObjectMeta {
-  name: string;
-  size: { x: number; y: number; };
-  data: string;
-  hitBoxes: IHitBox[];
+import PureCanvas from '@/lib/core/utils/classes/PureCanvas';
+import RenderedObject, { IRenderedObjectOptions, IRenderedObjectMeta } from '@/lib/core/utils/classes/RenderedObject';
+
+export interface IGameObjectOptions extends IRenderedObjectOptions {
+  name?: string;
+  hitBoxes?: IHitBox[];
+  version?: string;
 }
 
-interface IHitBoxOptions {
+export interface IGameObjectMeta extends IRenderedObjectMeta {
+  name: string;
+  hitBoxes: IHitBox[];
+  version: string;
+}
+
+export interface IHitBoxOptions {
   color: number;
 }
 
-interface IHitBox {
+export interface IHitBox {
   id: number;
   from: IPoint;
   to: IPoint;
   options: IHitBoxOptions;
 }
 
-export default class GameObject implements IRenderedObject {
-  public static fromMeta(meta: IGameObjectMeta) {
-    const instance = new this();
-    instance.load(meta);
+export default class GameObject extends RenderedObject implements IRenderedObject {
+  public static version = '0.1.0';
+
+  public static async fromMeta(meta: IGameObjectMeta) {
+    const instance = new this(meta);
+    await instance.load(meta);
     return instance;
   }
 
-  private _source: HTMLCanvasElement = document.createElement('canvas');
-  private _ctx: CanvasRenderingContext2D = this._source.getContext('2d');
+  private _source: PureCanvas = new PureCanvas();
 
   private _name: string = null;
   private _hitBoxes: IHitBox[] = [];
 
-  private _imageSmoothingEnabled: boolean = false;
+  public get name() { return this._name; }
+  public set name(value: string) { this._name = value; }
 
-  public get source(): CanvasImageSource {
-    return this._source;
-  }
+  public get hitBoxes(): IHitBox[] { return this._hitBoxes; }
 
-  public get name() {
-    return this._name;
-  }
-  public set name(value: string) {
-    this._name = value;
-  }
-
-  public get hitBoxes(): IHitBox[] {
-    return this._hitBoxes;
-  }
+  public get source(): CanvasImageSource { return this._source.canvas; }
+  public get sourceURL(): string { return this._source.toDataURL('image/png', 1); }
 
   public get sourceBoundingRect(): ISourceBoundingRect {
     return {
@@ -58,22 +58,20 @@ export default class GameObject implements IRenderedObject {
   public get width(): number { return this._source.width; }
   public get height(): number { return this._source.height; }
 
-  public _drawImage(image: CanvasImageSource) {
-    this.clear();
-    this._ctx.drawImage(image, 0, 0, Number(image.width), Number(image.height), 0, 0, this.width, this.height);
+  public get meta(): IGameObjectMeta {
+    return {
+      id: this.id,
+      sourceURL: this.sourceURL,
+      sourceBoundingRect: this.sourceBoundingRect,
+      name: this.name,
+      hitBoxes: this.hitBoxes,
+      version: GameObject.version,
+    };
   }
 
-  constructor(options: any = {}) {
-    if (options.name) this._name = options.name;
-    if (options.size != null) {
-      this._source.width = options.size.width;
-      this._source.height = options.size.height;
-    }
-    if (options.hitBoxes != null) this._hitBoxes = options.hitBoxes;
-
-    this._ctx.imageSmoothingEnabled = this._imageSmoothingEnabled;
-
-    this._drawImage = this._drawImage.bind(this);
+  private _drawImage(image: CanvasImageSource) {
+    this.clear();
+    this._source.drawImageFullFilled(image);
   }
 
   public appendHitBox(from: IPoint, to: IPoint, options: IHitBoxOptions) {
@@ -86,48 +84,29 @@ export default class GameObject implements IRenderedObject {
   }
 
   public clear() {
-    this._ctx.clearRect(0, 0, this.width, this.height);
+    this._source.clear();
     this._hitBoxes = [];
   }
 
   public drawImage(image: CanvasImageSource) {
-    this._source.width = Number(image.width);
-    this._source.height = Number(image.height);
+    this._source.resize(Number(image.width), Number(image.height));
     this._drawImage(image);
   }
 
-  public save(): IGameObjectMeta {
-    const data = this._source.toDataURL('image/png', 1);
-    const hitBoxes = this._hitBoxes;
-    return {
-      name: this.name,
-      size: {
-        x: this.width,
-        y: this.height,
-      },
-      data,
-      hitBoxes,
-    };
-  }
-
   public async load({
+    id,
+    sourceURL,
+    sourceBoundingRect,
     name,
-    size,
-    data,
     hitBoxes,
+    version,
   }: IGameObjectMeta) {
+    if (version !== GameObject.version) throw new Error('Metadata version mismatch!');
+
+    this._id = id;
     this._name = name;
-    this._source.width = size.x;
-    this._source.height = size.y;
-    await new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => {
-        this._drawImage(img);
-        resolve();
-      };
-      img.onerror = reject;
-      img.src = data;
-    });
+    this._source.resize(sourceBoundingRect.width, sourceBoundingRect.height);
+    await this._source.fromDataURL(sourceURL, false);
     this._hitBoxes = hitBoxes;
   }
 }

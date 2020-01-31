@@ -1,44 +1,23 @@
-import { uuid } from '@/utils';
+import PureCanvas from '@/lib/core/utils/classes/PureCanvas';
+import RenderedObject, { IRenderedObjectOptions, IRenderedObjectMeta } from '@/lib/core/utils/classes/RenderedObject';
 
-import Point from './Point';
-
-declare global {
-  interface ISource {
-    data?: HTMLImageElement | HTMLCanvasElement;
-    url?: string;
-    tileSize?: IPoint;
-  }
+export interface ITileOptions extends IRenderedObjectOptions {
 }
 
-interface ITileMeta {
-  id?: string;
-  source: string;
-  sourceData?: CanvasImageSource;
-  sourceBoundingRect: ISourceBoundingRect;
+export interface ITileMeta extends IRenderedObjectMeta {
 }
 
-export default class Tile implements IRenderedObject {
-  static async fromTileSet(source: ISource, tileOptions: any) {
-    const instance = new this({
-      source,
-      ...tileOptions,
-    });
-    return instance;
-  }
-
-  static fromTileMeta(meta: ITileMeta, imageCache: Hash = null) {
-    // eslint-disable-next-line no-param-reassign
-    if (meta.sourceData == null) meta.sourceData = imageCache[meta.source];
+export default class Tile extends RenderedObject implements IRenderedObject {
+  public static fromMeta(meta: ITileMeta, source: CanvasImageSource = null) {
     const instance = new this({
       ...meta,
+      source,
     });
     return instance;
   }
 
-  private _id: string = null;
-
   private _source: CanvasImageSource = null;
-  private _sourceUrl: string = null;
+  private _sourceURL: string = null;
   private _sourceBoundingRect: ISourceBoundingRect = {
     x: 0,
     y: 0,
@@ -47,37 +26,22 @@ export default class Tile implements IRenderedObject {
   };
 
   public get id() { return this._id; }
-  public set id(value: any) { throw new Error('It\'s property read only!'); }
-
   public get source() { return this._source; }
-  public set source(value: any) { throw new Error('It\'s property read only!'); }
-
+  public get sourceURL() { return this._sourceURL; }
   public get sourceBoundingRect() { return this._sourceBoundingRect; }
-  public set sourceBoundingRect(value: any) { throw new Error('It\'s property read only!'); }
 
   public get meta() {
     return {
       id: this._id,
-      source: this._sourceUrl,
+      sourceURL: this._sourceURL,
       sourceBoundingRect: this.sourceBoundingRect,
     };
   }
-  public set meta(value: any) { throw new Error('It\'s property read only!'); }
 
-  constructor(options: any = {}) {
-    if (options.id != null) this._id = options.id;
-    else this._id = uuid();
-
-    if (options.source != null) this._sourceUrl = options.source;
-    if (options.sourceData != null) this._source = options.sourceData;
-
-    // if (options.sourceRegion != null) {
-    //   // @TODO: Old format
-    //   this._sourceBoundingRect.width = options.source.tileSize.x;
-    //   this._sourceBoundingRect.height = options.source.tileSize.y;
-    //   this._sourceBoundingRect.x = options.sourceRegion.x * this._sourceBoundingRect.width;
-    //   this._sourceBoundingRect.y = options.sourceRegion.y * this._sourceBoundingRect.height;
-    // }
+  constructor(options: ITileOptions = {}) {
+    super(options);
+    if (options.source != null) this._source = options.source;
+    if (options.sourceURL != null) this._sourceURL = options.sourceURL;
 
     if (options.sourceBoundingRect != null) {
       this._sourceBoundingRect.x = options.sourceBoundingRect.x;

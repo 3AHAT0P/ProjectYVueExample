@@ -1,6 +1,9 @@
 import Point from '@/lib/core/utils/classes/Point';
 import Tile from '@/lib/core/utils/classes/Tile';
 import Cursor from '@/lib/core/utils/classes/Cursor';
+import InteractiveObject from '@/lib/core/utils/classes/InteractiveObject';
+
+import GameObject from '@/lib/core/GameObject';
 
 import Canvas from '..';
 
@@ -87,52 +90,48 @@ const DrawableCanvasMixin = (BaseClass: typeof TileableCanvas = TileableCanvas) 
       this._el.addEventListener('mousemove', this[_onMouseMoveHandler], { passive: true });
     }
 
+    _createInteractiveObject(x: number, y: number, gameObject: GameObject) {
+      const sizeInTiles = this.sizeInTiles;
+      const boundingRect = gameObject.sourceBoundingRect;
+      let tilesByX = 1;
+      let tilesByY = 1;
+      if (boundingRect.width > this.normalizedTileSize.x) {
+        tilesByX = Math.ceil(boundingRect.width / this.normalizedTileSize.x);
+      }
+      if (boundingRect.height > this.normalizedTileSize.y) {
+        tilesByY = Math.ceil(boundingRect.height / this.normalizedTileSize.y);
+      }
+
+      const coords: Point[] = [];
+
+      for (let _y = 0; _y < tilesByY; _y += 1) {
+        for (let _x = 0; _x < tilesByX; _x += 1) {
+          const resultX = x + _x;
+          const resultY = y + _y;
+          if ((resultX >= 0 && resultX < sizeInTiles.x) && (resultY >= 0 && resultY < sizeInTiles.y)) {
+            coords.push(new Point(resultX, resultY));
+          }
+        }
+      }
+      const iObject = new InteractiveObject({ gameObject, coordTiles: coords });
+      this._appendInteractiveObject(iObject);
+    }
+
     _updateTilePlace(x: number, y: number, z: LAYER_INDEX = ZERO_LAYER) {
       if (this.tiles == null) return;
 
       if (this._drawType === DRAW_STATE_ENAM.ERASE) this._updateTileByCoord(x, y, z, null);
       else if (this._drawType === DRAW_STATE_ENAM.DRAW) {
+        const sizeInTiles = this.sizeInTiles;
         if (this.tiles.size === 1) {
-          const renderedObject = this.tiles.get(new Point(0, 0).toString());
-          const boundingRect = renderedObject.sourceBoundingRect;
-          let tilesByX = 1;
-          let tilesByY = 1;
-          // @ts-ignore
-          const sizeMultiplier = this.sizeMultiplier || 1;
-          if (boundingRect.width > this._tileSize.x) {
-            tilesByX = Math.ceil(boundingRect.width / (this._tileSize.x / sizeMultiplier));
-          }
-          if (boundingRect.height > this._tileSize.y) {
-            tilesByY = Math.ceil(boundingRect.height / (this._tileSize.y / sizeMultiplier));
-          }
-          console.log(tilesByX, tilesByY);
+          const renderedObject = this.tiles.get(new Point(0, 0).toReverseString());
+          this._updateTileByCoord(x, y, z, renderedObject);
 
-          for (let _y = 0; _y < tilesByY; _y += 1) {
-            for (let _x = 0; _x < tilesByX; _x += 1) {
-              const resultX = x + _x;
-              const resultY = y + _y;
-              if ((resultX >= 0 && resultX < this._columnsNumber) && (resultY >= 0 && resultY < this._rowsNumber)) {
-                if (_x === 0 && _y === 0) this._updateTileByCoord(resultX, resultY, z, renderedObject);
-                else {
-                  this._updateTileByCoord(
-                    resultX,
-                    resultY,
-                    z,
-                    {
-                      isVirtual: true,
-                      baseTile: new Point(x, y).toString(),
-                    },
-                  );
-                }
-              }
-            }
-          }
+          if (renderedObject instanceof GameObject) this._createInteractiveObject(x, y, renderedObject);
         } else {
           for (const [place, renderedObject] of this.tiles.entries()) {
-            const [_y, _x] = Point.fromString(place).toArray();
-            const resultX = x + _x;
-            const resultY = y + _y;
-            if ((resultX >= 0 && resultX < this._columnsNumber) && (resultY >= 0 && resultY < this._rowsNumber)) {
+            const [resultX, resultY] = Point.fromReverseString(place).add(x, y).toArray();
+            if ((resultX >= 0 && resultX < sizeInTiles.x) && (resultY >= 0 && resultY < sizeInTiles.y)) {
               this._updateTileByCoord(resultX, resultY, z, renderedObject);
             }
           }
@@ -183,21 +182,23 @@ const DrawableCanvasMixin = (BaseClass: typeof TileableCanvas = TileableCanvas) 
           width: this.width / sizeMultiplier,
           height: this.height / sizeMultiplier,
         },
-        version: '0.5.0',
+        version: '0.6.0',
       };
 
+      // @TODO: Types!
+
       for (const [key, tile] of this._layers[BACKGROUND_LAYER].entries()) {
-        if (json.uniqGameObjects[tile.id] == null) json.uniqGameObjects[tile.id] = tile.meta;
+        if (json.uniqGameObjects[tile.id] == null) json.uniqGameObjects[tile.id] = (tile as any).meta;
         json.tileHash[`${BACKGROUND_LAYER}>${key}`] = tile.id;
       }
 
       for (const [key, tile] of this._layers[ZERO_LAYER].entries()) {
-        if (json.uniqGameObjects[tile.id] == null) json.uniqGameObjects[tile.id] = tile.meta;
+        if (json.uniqGameObjects[tile.id] == null) json.uniqGameObjects[tile.id] = (tile as any).meta;
         json.tileHash[`${ZERO_LAYER}>${key}`] = tile.id;
       }
 
       for (const [key, tile] of this._layers[FOREGROUND_LAYER].entries()) {
-        if (json.uniqGameObjects[tile.id] == null) json.uniqGameObjects[tile.id] = tile.meta;
+        if (json.uniqGameObjects[tile.id] == null) json.uniqGameObjects[tile.id] = (tile as any).meta;
         json.tileHash[`${FOREGROUND_LAYER}>${key}`] = tile.id;
       }
 
@@ -205,28 +206,29 @@ const DrawableCanvasMixin = (BaseClass: typeof TileableCanvas = TileableCanvas) 
     }
 
     async load({ meta, imageHash }: any) {
-      if (meta.version !== '0.5.0') throw new Error('Metadata file version mismatch!');
+      if (meta.version !== '0.6.0') throw new Error('Metadata file version mismatch!');
 
       const { uniqGameObjects, tileHash: gridCells } = meta;
 
-      const tiles: Hash<Tile> = {};
+      const renderedObjects: Hash<IRenderedObject> = {};
+      const promises = [];
 
-      for (const [id, tileMeta] of Object.entries<any>(uniqGameObjects)) {
-        tileMeta.sourceData = imageHash[tileMeta.source];
-        // const sourceBoundingRect = {
-        //   x: tileMeta.sourceRegion.x * tileMeta.source.tileSize.x,
-        //   y: tileMeta.sourceRegion.y * tileMeta.source.tileSize.y,
-        //   width: tileMeta.source.tileSize.x,
-        //   height: tileMeta.source.tileSize.y,
-        // };
-
-        // tiles[id] = Tile.fromTileMeta({ source, sourceData, sourceBoundingRect });
-        tiles[id] = Tile.fromTileMeta(tileMeta);
+      for (const [id, _meta] of Object.entries<any>(uniqGameObjects)) {
+        if (_meta.hitBoxes != null) {
+          promises.push(GameObject.fromMeta(_meta).then((gameObject) => { renderedObjects[id] = gameObject; }));
+        } else renderedObjects[id] = Tile.fromMeta(_meta, imageHash[_meta.sourceURL]);
       }
 
-      for (const [key, tileId] of Object.entries<any>(gridCells)) {
+      await Promise.all(promises);
+
+      for (const [key, id] of Object.entries<any>(gridCells)) {
         const [level, place] = key.split('>');
-        this._layers[level].set(place, tiles[tileId]);
+        const renderedObject = renderedObjects[id];
+        this._layers[level].set(place, renderedObject);
+        if (renderedObject instanceof GameObject) {
+          const [x, y] = Point.fromReverseString(place).toArray();
+          this._createInteractiveObject(x, y, renderedObject);
+        }
       }
 
       this.invalidateCache('ALL');

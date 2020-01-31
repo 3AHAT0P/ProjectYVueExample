@@ -1,5 +1,6 @@
 import Point from '@/lib/core/utils/classes/Point';
 import Tile from '@/lib/core/utils/classes/Tile';
+import InteractiveObject from '@/lib/core/utils/classes/InteractiveObject';
 import buildEvent from '@/lib/core/utils/buildEvent';
 
 import Canvas from '..';
@@ -22,6 +23,9 @@ interface ILayerCache {
   isDirty: boolean;
 }
 
+// @TODO: Replace createCanvas to PureCanvas
+// @TODO: Separate hover logic to HoverableByTileMixin
+
 const createCache = () => {
   const canvas = document.createElement('canvas');
   return {
@@ -39,8 +43,8 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
   }
 
   class TileableCanvas extends BaseClass {
-    private _tiles: Map<string, Tile> = null;
-    private _hoverTile: Tile = null;
+    private _tiles: Map<string, IRenderedObject> = null;
+    private _hoverTile: IRenderedObject = null;
     protected _tileSize = {
       x: 16,
       y: 16,
@@ -49,11 +53,11 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
     private _visibleLayersChanged: boolean = false;
     private _visibleLayers: LAYER_INDEX[] = [BACKGROUND_LAYER, ZERO_LAYER, FOREGROUND_LAYER, SYSTEM_UI_LAYER];
 
-    _layers: Hash<Map<string, Tile>> = {
-      [BACKGROUND_LAYER]: new Map<string, Tile>(),
-      [ZERO_LAYER]: new Map<string, Tile>(),
-      [FOREGROUND_LAYER]: new Map<string, Tile>(),
-      [SYSTEM_UI_LAYER]: new Map<string, Tile>(),
+    _layers: Hash<Map<string, IRenderedObject>> = {
+      [BACKGROUND_LAYER]: new Map<string, IRenderedObject>(),
+      [ZERO_LAYER]: new Map<string, IRenderedObject>(),
+      [FOREGROUND_LAYER]: new Map<string, IRenderedObject>(),
+      [SYSTEM_UI_LAYER]: new Map<string, IRenderedObject>(),
     };
 
     _layersCache: Hash<ILayerCache> = {
@@ -62,6 +66,8 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
       [FOREGROUND_LAYER]: createCache(),
       [SYSTEM_UI_LAYER]: createCache(),
     };
+
+    _interactiveObjects: InteractiveObject[] = [];
 
     _columnsNumber = 0;
     _rowsNumber = 0;
@@ -74,8 +80,16 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
     }
 
     // current
-    get tiles() { return this._tiles; }
-    set tiles(tiles) { throw new Error('It\'s property read only!'); }
+    public get tiles() { return this._tiles; }
+
+    public get tileSize() { return this._tileSize; }
+    public get normalizedTileSize() {
+      return {
+        x: this.normalizedWidth / this._columnsNumber,
+        y: this.normalizedHeight / this._rowsNumber,
+      };
+    }
+
 
     [_onMouseMoveHandler](event: MouseEvent) {
       this._hoverTilePlace(...this._transformEventCoordsToGridCoords(event.offsetX, event.offsetY));
@@ -92,24 +106,26 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
       return layer.get(`${y}|${x}`);
     }
 
-    _updateTileByCoord(x: number, y: number, z: LAYER_INDEX = ZERO_LAYER, tile: IRenderedObject | IVirtualTile) {
+    _updateTileByCoord(x: number, y: number, z: LAYER_INDEX = ZERO_LAYER, tile: IRenderedObject) {
       const layer = this._layers[z];
-      // @TODO: Optimization
       this._layersCache[z].isDirty = true;
-      // @FIXME: TYPES!
       if (tile != null) {
         if (layer.get(`${y}|${x}`) === tile) return;
-        layer.set(`${y}|${x}`, tile as any);
+        layer.set(`${y}|${x}`, tile);
       } else {
         if (!layer.has(`${y}|${x}`)) return;
         layer.delete(`${y}|${x}`);
       }
     }
 
+    _appendInteractiveObject(iObject: InteractiveObject) {
+      this._interactiveObjects.push(iObject);
+    }
+
     _hoverTilePlace(x: number, y: number) {
       for (const [place, tile] of this._layers[SYSTEM_UI_LAYER].entries()) {
         if (tile != null) {
-          const [_y, _x] = Point.fromString(place).toArray();
+          const [_x, _y] = Point.fromReverseString(place).toArray();
           if (Point.isEqual(x, y, _x, _y)) return;
 
           this._updateTileByCoord(_x, _y, SYSTEM_UI_LAYER, null);
@@ -133,10 +149,9 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
     }
 
     _clearLayer(level: LAYER_INDEX | 'ALL') {
+      if (level === 'ALL' || level === ZERO_LAYER) this._interactiveObjects = [];
       if (level === 'ALL') {
-        for (const layerIndex of LAYER_INDEXES) {
-          this._layers[layerIndex].clear();
-        }
+        for (const layerIndex of LAYER_INDEXES) this._layers[layerIndex].clear();
       } else this._layers[level].clear();
       this.invalidateCache(level);
     }
@@ -152,7 +167,7 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
       }
     }
 
-    _drawLayer(layer: Map<string, Tile>, cache: ILayerCache) {
+    _drawLayer(layer: Map<string, IRenderedObject>, cache: ILayerCache) {
       // @TODO: Optimization
       if (cache.isDirty) {
         // eslint-disable-next-line no-param-reassign
@@ -165,7 +180,7 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
         for (const [place, renderedObject] of layer.entries()) {
           // eslint-disable-next-line no-continue
           if ((renderedObject as any).isVirtual) continue;
-          const [y, x] = Point.fromString(place).toArray();
+          const [x, y] = Point.fromReverseString(place).toArray();
           const tileBoundingRect = renderedObject.sourceBoundingRect;
           cache.ctx.drawImage(
             renderedObject.source,
@@ -250,7 +265,8 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
       ctx.fillStyle = 'hsla(0, 0%, 0%, .1)';
       ctx.fillRect(0, 0, this._tileSize.x, this._tileSize.y);
 
-      const source = 'HOVER_TILE_SOURCE';
+      const sourceURL = 'HOVER_TILE_SOURCE';
+      const source = canvas;
       const sourceBoundingRect = {
         x: 0,
         y: 0,
@@ -258,7 +274,7 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
         height: this._tileSize.y,
       };
 
-      this._hoverTile = Tile.fromTileMeta({ source, sourceData: canvas, sourceBoundingRect });
+      this._hoverTile = new Tile({ source, sourceURL, sourceBoundingRect });
     }
 
     protected _resize(multiplier: number) {
@@ -287,7 +303,7 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
       await super.init();
     }
 
-    public async updateCurrentTiles(tiles: Map<string, Tile>) {
+    public async updateCurrentTiles(tiles: Map<string, IRenderedObject>) {
       this._tiles = tiles;
       this._renderInNextFrame();
     }

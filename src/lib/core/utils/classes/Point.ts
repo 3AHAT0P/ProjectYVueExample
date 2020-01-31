@@ -20,6 +20,10 @@ export default class Point implements IPoint {
     const [x, y] = value.split(DELIMITER);
     return new this(Number(x), Number(y));
   }
+  public static fromReverseString(value: string) {
+    const [y, x] = value.split(DELIMITER);
+    return new this(Number(x), Number(y));
+  }
 
   public static isEqual(x1: numOrStr, y1: numOrStr, x2: numOrStr, y2: numOrStr): boolean {
     return Number(x1) === Number(x2) && Number(y1) === Number(y2);
@@ -43,6 +47,10 @@ export default class Point implements IPoint {
     return `${this.x}${DELIMITER}${this.y}`;
   }
 
+  public toReverseString() {
+    return `${this.y}${DELIMITER}${this.x}`;
+  }
+
   public toArray() {
     return [this.x, this.y];
   }
@@ -53,5 +61,16 @@ export default class Point implements IPoint {
 
   public isEqualTo(x: numOrStr, y: numOrStr): boolean {
     return (this.constructor as IPointConstructor).isEqual(this.x, this.y, x, y);
+  }
+
+  public isEqualToPoint(point: Point): boolean {
+    return (this.constructor as IPointConstructor).isEqual(this.x, this.y, point.x, point.y);
+  }
+
+  public add(x: numOrStr, y: numOrStr): this {
+    this._x += Number(x);
+    this._y += Number(y);
+
+    return this;
   }
 }

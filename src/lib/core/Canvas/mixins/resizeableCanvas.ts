@@ -19,6 +19,10 @@ const ResizeableCanvasMixin = (BaseClass = Canvas) => {
 
     public get sizeMultiplier() { return this._sizeMultiplier; }
 
+    public get normalizedHeight() { return this.height / this.sizeMultiplier; }
+    public get normalizedWidth() { return this.width / this.sizeMultiplier; }
+
+
     private [_onClickHandler](event: MouseEvent) {
       if (event.ctrlKey) {
         this._resize(INCREASE_SIZE_MULTIPLIER);
