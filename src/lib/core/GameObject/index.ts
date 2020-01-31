@@ -17,6 +17,8 @@ interface IHitBox {
 }
 
 export default class GameObject implements IRenderedObject {
+  public id: string;
+
   public static fromMeta(meta: IGameObjectMeta) {
     const instance = new this();
     instance.load(meta);
@@ -64,6 +66,7 @@ export default class GameObject implements IRenderedObject {
   }
 
   constructor(options: any = {}) {
+    this.id = null;
     if (options.name) this._name = options.name;
     if (options.size != null) {
       this._source.width = options.size.width;
