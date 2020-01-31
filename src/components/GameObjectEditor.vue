@@ -9,6 +9,10 @@
       </div>
       <div :class="blockName | bemElement('sidebar-separator')"></div>
       <div>
+        <button @click="clear">Clear</button>
+      </div>
+      <div :class="blockName | bemElement('sidebar-separator')"></div>
+      <div>
         Or load By URL
         <label><span>Metadata file URL: </span><input type="text" v-model="metadataUrl"></label>
         <button @click="load">Load</button>
@@ -94,7 +98,7 @@ export default class GameObjectEditor extends Vue {
 
   private blockName: string = 'game-object-editor';
 
-  private gameObjectCanvas: any = null;
+  private gameObjectCanvas: GameObjectCanvas = null;
 
   private metadataUrl: string = `${BASE_URL}game-objects/player-mage.json`;
 
@@ -150,7 +154,7 @@ export default class GameObjectEditor extends Vue {
     canvas.height = yCount * tileHeight;
     ctx.imageSmoothingEnabled = false;
     for (const [place, tile] of tiles.entries()) {
-      const [y, x] = Point.fromString(place).toArray();
+      const [x, y] = Point.fromReverseString(place).toArray();
       const tileBoundingRect = tile.sourceBoundingRect;
       ctx.drawImage(
         tile.source,
@@ -175,6 +179,10 @@ export default class GameObjectEditor extends Vue {
 
   private rerender() {
     this.gameObjectCanvas.dispatchEvent(new Event(':renderRequest'));
+  }
+
+  clear() {
+    this.gameObjectCanvas.clearGameObject();
   }
 
   getListGameObjects() {

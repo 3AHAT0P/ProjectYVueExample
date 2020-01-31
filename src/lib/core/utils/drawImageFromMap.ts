@@ -21,7 +21,7 @@ export default (
   // eslint-disable-next-line no-param-reassign
   ctx.imageSmoothingEnabled = false;
   for (const [place, tile] of tiles.entries()) {
-    const [y, x] = Point.fromString(place).toArray();
+    const [x, y] = Point.fromReverseString(place).toArray();
     const tileBoundingRect = tile.sourceBoundingRect;
     ctx.drawImage(
       tile.source,

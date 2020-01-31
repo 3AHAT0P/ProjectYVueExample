@@ -98,8 +98,8 @@ export default class TileMap extends BaseClass {
     );
     this._metadataSrc = metaDataJson;
     for (const [id, meta] of Object.entries<any>(this._metadataSrc.uniqGameObjects)) {
-      if (this._tileSets[meta.source] == null) {
-        this._tileSets[meta.source] = null;
+      if (this._tileSets[meta.sourceURL] == null) {
+        this._tileSets[meta.sourceURL] = null;
       }
     }
   }

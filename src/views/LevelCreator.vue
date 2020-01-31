@@ -77,18 +77,19 @@ export default class LevelCreator extends Vue {
     });
   }
 
-  getListGameObjects() {
+  async getListGameObjects() {
     this.savedGameObjects = [];
+    const promises = [];
     for (const [key, value] of localStorageEntries()) {
       if (key.startsWith('GameObject:')) {
-        const gameObject = GameObject.fromMeta(JSON.parse(value));
-        this.savedGameObjects.push(gameObject);
+        promises.push(GameObject.fromMeta(JSON.parse(value)));
       }
     }
+    this.savedGameObjects = await Promise.all(promises);
   }
 
   selectGameObject(gameObject: GameObject) {
-    this.renderedObject = new Map([[new Point(0, 0).toString(), gameObject]]);
+    this.renderedObject = new Map([[new Point(0, 0).toReverseString(), gameObject]]);
     this.currentTileCanvas.addEventListener(':render', (event: any) => {
       drawImageFromMap(
         this.renderedObject,

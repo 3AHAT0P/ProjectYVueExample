@@ -28,6 +28,9 @@ export default class Canvas extends EventTarget {
   public get height() { return this._el.height; }
   public get width() { return this._el.width; }
 
+  public get normalizedHeight() { return this.height; }
+  public get normalizedWidth() { return this.width; }
+
   protected _renderInNextFrame() {
     requestAnimationFrame(this._render);
   }

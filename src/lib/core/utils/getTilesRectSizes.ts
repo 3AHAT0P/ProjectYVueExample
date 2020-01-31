@@ -15,7 +15,7 @@ export default (tiles: Map<string, IRenderedObject>) => {
 
   // take just last key because it has the highest index of x and y
   const lastKey = Array.from(tiles.keys()).pop();
-  const [yCount, xCount] = Point.fromString(lastKey).toArray();
+  const [xCount, yCount] = Point.fromReverseString(lastKey).toArray();
 
   // increment on 1 because count start from 0
   return {

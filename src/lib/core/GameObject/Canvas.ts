@@ -1,11 +1,11 @@
 import CanvasClassBuilder from '@/lib/core/Canvas/CanvasClassBuilder';
 
+import PureCanvas from '@/lib/core/utils/classes/PureCanvas';
 import buildEvent from '@/lib/core/utils/buildEvent';
 
 import { getRandomArbitraryInt } from '@/utils/';
 
-import GameObject from './index';
-
+import GameObject, { IGameObjectMeta } from './index';
 
 const _onMouseDownHandler = Symbol('_onMouseDownHandler');
 const _onMouseMoveHandler = Symbol('_onMouseMoveHandler');
@@ -154,12 +154,7 @@ export default class GameObjectCanvas extends Canvas {
 
   constructor(options: any = {}) {
     super(options);
-    this._gameObject = new GameObject({
-      size: {
-        width: this._el.width,
-        height: this._el.height,
-      },
-    });
+    this._gameObject = new GameObject({});
 
     this[_onMouseDownHandler] = this[_onMouseDownHandler].bind(this);
     this[_onMouseMoveHandler] = this[_onMouseMoveHandler].bind(this);
@@ -180,14 +175,23 @@ export default class GameObjectCanvas extends Canvas {
   public updateCache(image: CanvasImageSource) {
     this._gameObject.drawImage(image);
     this.updateSize(this._gameObject.width * this.sizeMultiplier, this._gameObject.height * this.sizeMultiplier);
+    this.dispatchEvent(buildEvent(':hitBoxsUpdated', null, { hitBoxes: this._gameObject.hitBoxes }));
+  }
+
+  public clearGameObject(): void {
+    this._gameObject.clear();
+    this._renderInNextFrame();
+    this.dispatchEvent(buildEvent(':hitBoxsUpdated', null, { hitBoxes: this._gameObject.hitBoxes }));
   }
 
   public save() {
-    return this._gameObject.save();
+    return this._gameObject.meta;
   }
 
-  public async load(meta: any) {
+  public async load(meta: IGameObjectMeta) {
     await this._gameObject.load(meta);
+    const width = this._gameObject.sourceBoundingRect.width;
+    while (160 / width > this.sizeMultiplier) this._sizeMultiplier *= 2;
     this.updateSize(this._gameObject.width * this.sizeMultiplier, this._gameObject.height * this.sizeMultiplier);
     this._renderInNextFrame();
   }
