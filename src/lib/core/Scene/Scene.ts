@@ -1,4 +1,4 @@
-import Character from '../utils/classes/Character/index';
+import Character from '@/lib/core/InteractiveObject/Character/Character';
 
 declare global {
   interface Scene {

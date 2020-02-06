@@ -1,5 +1,4 @@
-import PureCanvas from '@/lib/core/utils/classes/PureCanvas';
-import RenderedObject, { IRenderedObjectOptions, IRenderedObjectMeta } from '@/lib/core/utils/classes/RenderedObject';
+import RenderedObject, { IRenderedObjectOptions, IRenderedObjectMeta } from './RenderedObject';
 
 export interface ITileOptions extends IRenderedObjectOptions {
 }

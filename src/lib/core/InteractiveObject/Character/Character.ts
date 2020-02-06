@@ -1,5 +1,5 @@
-import Flipbook from '../Flipbook';
-import Sprite from '../Sprite';
+import Flipbook from '../../RenderedObject/Flipbook';
+import Sprite from '../../RenderedObject/Sprite';
 
 const ERROR_HELP_TEXT = 'Use Character.create method to create character with a set of sprites';
 declare global {

@@ -1,4 +1,4 @@
-import Flipbook from '@/lib/core/utils/classes/Flipbook';
+import Flipbook from '@/lib/core/RenderedObject/Flipbook';
 
 declare global {
   interface IHooks {

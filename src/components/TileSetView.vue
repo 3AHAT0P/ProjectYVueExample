@@ -17,10 +17,10 @@ import {
 } from 'vue-property-decorator';
 import { State, Getter, Mutation } from 'vuex-class';
 
-import TileSet from '@/lib/core/TileSet';
+import TileSet from '@/lib/core/TileSet/TileSet';
 
 import Point from '@/lib/core/utils/classes/Point';
-import Tile from '@/lib/core/utils/classes/Tile';
+import Tile from '@/lib/core/RenderedObject/Tile';
 
 const { BASE_URL } = process.env;
 

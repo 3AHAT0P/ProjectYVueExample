@@ -78,9 +78,9 @@ import {
 } from 'vue-property-decorator';
 import { State, Getter, Mutation } from 'vuex-class';
 
-import GameObjectCanvas from '@/lib/core/GameObject/Canvas';
+import GameObjectCanvas from '@/lib/core/RenderedObject/GameObject/Canvas';
 
-import Tile from '@/lib/core/utils/classes/Tile';
+import Tile from '@/lib/core/RenderedObject/Tile';
 import Point from '@/lib/core/utils/classes/Point';
 import getTilesRectCount from '@/lib/core/utils/getTilesRectSizes';
 import drawImageFromMap from '@/lib/core/utils/drawImageFromMap';

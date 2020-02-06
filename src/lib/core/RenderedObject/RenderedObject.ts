@@ -1,4 +1,4 @@
-import { uuid } from '@/utils';
+import { uuid } from '@/lib/core/utils';
 
 export interface IRenderedObjectOptions {
   id?: string;

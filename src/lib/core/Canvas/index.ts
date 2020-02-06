@@ -23,19 +23,21 @@ export default class Canvas extends EventTarget {
 
   protected _imageSmoothingEnabled = false;
 
-  public el: HTMLElement = null;
-
   public get height() { return this._el.height; }
   public get width() { return this._el.width; }
 
   public get normalizedHeight() { return this.height; }
   public get normalizedWidth() { return this.width; }
 
+  protected async _initListeners() {
+    this.addEventListener(':renderRequest', this._renderInNextFrame, { passive: true });
+  }
+
   protected _renderInNextFrame() {
     requestAnimationFrame(this._render);
   }
 
-  protected _render(...args: any[]) {
+  protected _render(time: number) {
     this._ctx.imageSmoothingEnabled = this._imageSmoothingEnabled;
     this.clear();
     this.dispatchEvent(buildEvent(':render', null, { ctx: this._ctx }));
@@ -63,23 +65,19 @@ export default class Canvas extends EventTarget {
     this._renderInNextFrame();
   }
 
-  protected async _initListeners() {
-    this.addEventListener(':renderRequest', this._renderInNextFrame, { passive: true });
-  }
-
-  updateSize(width: number, height: number) {
+  public updateSize(width: number, height: number) {
     this._el.width = width;
     this._el.height = height;
   }
 
-  fill(color: string = 'white') {
+  public fill(color: string = 'white') {
     this._ctx.save();
     this._ctx.fillStyle = color;
     this._ctx.fillRect(0, 0, this._el.width, this._el.height);
     this._ctx.restore();
   }
 
-  clear() {
+  public clear() {
     this._ctx.clearRect(0, 0, this._el.width, this._el.height);
   }
 }

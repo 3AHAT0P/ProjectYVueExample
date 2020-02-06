@@ -1,9 +1,9 @@
 import Point from '@/lib/core/utils/classes/Point';
-import Tile from '@/lib/core/utils/classes/Tile';
 import Cursor from '@/lib/core/utils/classes/Cursor';
-import InteractiveObject from '@/lib/core/utils/classes/InteractiveObject';
+import InteractiveObject from '@/lib/core/InteractiveObject/InteractiveObject';
 
-import GameObject from '@/lib/core/GameObject';
+import GameObject from '@/lib/core/RenderedObject/GameObject/GameObject';
+import Tile from '@/lib/core/RenderedObject/Tile';
 
 import Canvas from '..';
 

@@ -1,4 +1,3 @@
-import Tile from './classes/Tile';
 import Point from './classes/Point';
 import getTilesRectSizes from './getTilesRectSizes';
 

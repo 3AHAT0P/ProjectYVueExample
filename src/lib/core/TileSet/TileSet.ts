@@ -1,5 +1,5 @@
 import CanvasClassBuilder from '@/lib/core/Canvas/CanvasClassBuilder';
-import Tile from '@/lib/core/utils/classes/Tile';
+import Tile from '@/lib/core/RenderedObject/Tile';
 import buildEvent from '@/lib/core/utils/buildEvent';
 
 

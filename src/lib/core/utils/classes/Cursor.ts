@@ -2,8 +2,6 @@ import updateImageColorVolume from '../updateImageColorVolume';
 import drawImageFromMap from '../drawImageFromMap';
 import getTilesRectSizes from '../getTilesRectSizes';
 
-import Tile from './Tile';
-
 export default class Cursor {
   _el: HTMLElement = null;
   _url: string = null;
@@ -22,7 +20,7 @@ export default class Cursor {
     if (options.offset != null) this._offset = options.offset;
   }
 
-  async updateImageFromTilemap(tilemap: Map<string, Tile>) {
+  async updateImageFromTilemap(tilemap: Map<string, IRenderedObject>) {
     const canvas = document.createElement('canvas');
     Reflect.set(canvas.style, 'image-rendering', 'pixelated');
     const { xCount, yCount } = getTilesRectSizes(tilemap);

@@ -1,6 +1,6 @@
 import Point from '@/lib/core/utils/classes/Point';
-import Tile from '@/lib/core/utils/classes/Tile';
-import InteractiveObject from '@/lib/core/utils/classes/InteractiveObject';
+import Tile from '@/lib/core/RenderedObject/Tile';
+import InteractiveObject from '@/lib/core/InteractiveObject/InteractiveObject';
 import buildEvent from '@/lib/core/utils/buildEvent';
 
 import Canvas from '..';

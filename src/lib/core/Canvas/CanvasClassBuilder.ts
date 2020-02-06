@@ -13,8 +13,8 @@ const MIXINS: Hash = {
 };
 
 export default class CanvasClassBuilder {
-  private klass: any = Canvas;
-  private mixins: any = {
+  private _class: any = Canvas;
+  private _mixins: any = {
     selectable: false,
     resizable: false,
     tileable: false,
@@ -22,35 +22,35 @@ export default class CanvasClassBuilder {
   };
 
   applySelectableMixin() {
-    this.mixins.selectable = true;
+    this._mixins.selectable = true;
     return this;
   }
 
   applyResizeableMixin() {
-    this.mixins.resizable = true;
+    this._mixins.resizable = true;
     return this;
   }
 
   applyTileableMixin() {
-    this.mixins.tileable = true;
+    this._mixins.tileable = true;
     return this;
   }
 
   applyDrawableMixin() {
-    this.mixins.drawable = true;
+    this._mixins.drawable = true;
     return this;
   }
 
   build() {
-    let klass = this.klass;
-    for (const [key, flag] of Object.entries(this.mixins)) {
-      if (flag) klass = MIXINS[key](klass);
+    let _class = this._class;
+    for (const [key, flag] of Object.entries(this._mixins)) {
+      if (flag) _class = MIXINS[key](_class);
     }
-    return klass;
+    return _class;
   }
 
   instantiate(options: any) {
-    const klass = this.build();
-    return klass.create(options);
+    const _class = this.build();
+    return _class.create(options);
   }
 }

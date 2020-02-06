@@ -1,11 +1,8 @@
 import CanvasClassBuilder from '@/lib/core/Canvas/CanvasClassBuilder';
-
-import PureCanvas from '@/lib/core/utils/classes/PureCanvas';
 import buildEvent from '@/lib/core/utils/buildEvent';
-
 import { getRandomArbitraryInt } from '@/utils/';
 
-import GameObject, { IGameObjectMeta } from './index';
+import GameObject, { IGameObjectMeta } from './GameObject';
 
 const _onMouseDownHandler = Symbol('_onMouseDownHandler');
 const _onMouseMoveHandler = Symbol('_onMouseMoveHandler');

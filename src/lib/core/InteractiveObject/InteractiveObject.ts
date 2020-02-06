@@ -1,6 +1,6 @@
-import GameObject from '@/lib/core/GameObject';
+import GameObject from '@/lib/core/RenderedObject/GameObject/GameObject';
 
-import Point from './Point';
+import Point from '@/lib/core/utils/classes/Point';
 
 export default class InteractiveObject {
   private _gameObject: GameObject = null;
