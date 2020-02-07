@@ -37,10 +37,10 @@ import {
 import { State, Getter, Mutation } from 'vuex-class';
 
 import CanvasClassBuilder from '@/lib/core/Canvas/CanvasClassBuilder';
-import GameObject from '@/lib/core/GameObject';
+import GameObject from '@/lib/core/RenderedObject/GameObject/GameObject';
+import Tile from '@/lib/core/RenderedObject/Tile';
 
 import Point from '@/lib/core/utils/classes/Point';
-import Tile from '@/lib/core/utils/classes/Tile';
 import drawImageFromMap from '@/lib/core/utils/drawImageFromMap';
 
 import TileMapEditor from '@/components/TileMapEditor.vue';
