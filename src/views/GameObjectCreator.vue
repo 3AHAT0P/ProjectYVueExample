@@ -26,7 +26,7 @@ import { State, Getter, Mutation } from 'vuex-class';
 import GameObjectEditor from '@/components/GameObjectEditor.vue';
 import TileSetView from '@/components/TileSetView.vue';
 
-import Tile from '@/lib/core/utils/classes/Tile';
+import Tile from '@/lib/core/RenderedObject/Tile';
 
 const { BASE_URL } = process.env;
 

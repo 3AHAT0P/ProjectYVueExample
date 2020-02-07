@@ -187,8 +187,9 @@ export default class GameObjectCanvas extends Canvas {
 
   public async load(meta: IGameObjectMeta) {
     await this._gameObject.load(meta);
-    const width = this._gameObject.sourceBoundingRect.width;
-    while (160 / width > this.sizeMultiplier) this._sizeMultiplier *= 2;
+    const size = Math.max(this._gameObject.sourceBoundingRect.width, this._gameObject.sourceBoundingRect.height);
+    while (160 / size > this.sizeMultiplier) this._resize(2);
+    while (330 / size < this.sizeMultiplier) this._resize(1 / 2);
     this.updateSize(this._gameObject.width * this.sizeMultiplier, this._gameObject.height * this.sizeMultiplier);
     this._renderInNextFrame();
   }
