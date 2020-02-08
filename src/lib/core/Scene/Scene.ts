@@ -1,4 +1,7 @@
 import Character from '@/lib/core/InteractiveObject/Character/Character';
+import InteractiveObject from '@/lib/core/InteractiveObject/InteractiveObject';
+import Point from '@/lib/core/utils/classes/Point';
+import GameObject from '@/lib/core/RenderedObject/GameObject/GameObject';
 
 declare global {
   interface Scene {
@@ -9,6 +12,9 @@ declare global {
     checkBeyondPosition(x: number, y: number, width: number, height: number): boolean,
     checkMoveCollisions(object: Character): boolean,
     checkDamageCollisions(object: Character): boolean,
+    setBackground(background: ILayerCache): void,
+    setForeground(foreground: ILayerCache): void,
+    addObjects(objects: Map<string, IRenderedObject>): void,
   }
 }
 
@@ -22,14 +28,16 @@ export default class Scene {
   private _ctx: CanvasRenderingContext2D;
   private _hero: Character;
   private _paused: boolean;
+  private background: ILayerCache;
+  private foreground: ILayerCache;
 
   /**
    * @constructor Scene
-   * @param {HTMLElement} element - a place where game will be rendering
+   * @param {Element} element - a place where game will be rendering
    * @param {number} [width=500] - width of a game viewport
    * @param {number} [height=500] - height of a game viewport
    */
-  constructor(element: HTMLElement, width: number, height: number) {
+  constructor(element: Element, width?: number, height?: number) {
     this._canvas = document.createElement('canvas');
     this._canvas.width = width || 500;
     this._canvas.height = height || 500;
@@ -37,6 +45,12 @@ export default class Scene {
     this._ctx = this._canvas.getContext('2d');
   }
 
+  setBackground(background: ILayerCache) {
+    this.background = background;
+  }
+  setForeground(foreground: ILayerCache) {
+    this.foreground = foreground;
+  }
   /**
    * Method to add a main Hero to a game
    * @param {Character} hero - Instance of the Character class which would be the main hero of a game.
@@ -50,12 +64,29 @@ export default class Scene {
   /**
    *
    * @param object
-   * @param {string} type - dynamic or static
+   * @param {string} [type=static] - dynamic or static
    */
   // TODO fix types
-  addObject(object: any, type: string) {
-    if (object && type === 'static') this._staticObjects.push(object);
+  addObject(object: InteractiveObject, type?: string) {
     if (object && type === 'dynamic') this._dynamicObjects.push(object);
+    if (object && type === 'static') this._staticObjects.push(object);
+    else this._staticObjects.push(object);
+  }
+
+  addObjects(objects: Map<string, GameObject>) {
+    // this value is the size of tiles from TileMap. Because place represent coords on the grid
+    // for example - 1|2 means that real point is 1 * 16 | 2 * 16
+    const defaultTileSize = 16;
+    for (const [place, renderedObject] of objects.entries()) {
+      // eslint-disable-next-line no-continue
+      if ((renderedObject as any).isVirtual) continue;
+      const [x, y] = Point.fromReverseString(place).toArray();
+      const position = {
+        x: x * defaultTileSize,
+        y: y * defaultTileSize,
+      };
+      this.addObject(new InteractiveObject({ gameObject: renderedObject, position }), 'static');
+    }
   }
 
   start() {
@@ -101,19 +132,42 @@ export default class Scene {
     this._renderBackground();
     this._renderObjects();
     this._renderHero();
+    this._renderForeground();
   }
 
-  _renderBackground() {}
+  _renderBackground() {
+    const { canvas, canvas: { width, height } } = this.background;
+    this._ctx.drawImage(canvas, 0, 0, width, height, 0, 0, width, height);
+  }
+  _renderForeground() {
+    const { canvas, canvas: { width, height } } = this.foreground;
+    this._ctx.drawImage(canvas, 0, 0, width, height, 0, 0, width, height);
+  }
 
   _renderObjects() {
-    this._staticObjects.forEach(staticObject => this._renderObject(staticObject));
+    this._renderStaticObjects();
     this._dynamicObjects.forEach(dynamicObject => this._renderObject(dynamicObject));
   }
 
   _renderHero() {
-    this._renderObject(this._hero);
+    if (this._hero) this._renderObject(this._hero);
   }
 
+  _renderInteractiveObject(object: InteractiveObject) {
+    const { width, height } = object.sourceBoundingRect;
+    const { x, y } = object.position;
+    this._ctx.drawImage(
+      object.render(),
+      0,
+      0,
+      width,
+      height,
+      x,
+      y,
+      width,
+      height,
+    );
+  }
   // TODO fix types
   _renderObject(object: any) {
     const { position, width, height } = object;
@@ -130,13 +184,20 @@ export default class Scene {
     );
   }
 
+  _renderStaticObjects() {
+    this._staticObjects.forEach(staticObject => this._renderInteractiveObject(staticObject));
+  }
+
   // TODO fix types
   _detectCollision(a: any, b: any) {
-    const ax2 = a.position.x + a.width;
-    const ay2 = a.position.y + a.height;
-    const bx2 = b.position.x + b.width;
-    const by2 = b.position.y + b.height;
+    const { x: ax, y: ay } = a.position;
+    const { x: bx, y: by } = b.position;
+    const ax2 = ax + a.width;
+    const ay2 = ay + a.height;
+    const bx2 = bx + b.width;
+    const by2 = by + b.height;
 
-    return !(ax2 < b.x || a.x > bx2 || ay2 < b.y || a.y > by2);
+    if (bx < ax2 && ax < bx2 && by < ay2) { return ay < by2; }
+    return false;
   }
 }

@@ -117,7 +117,7 @@ export default class Character {
         checkPosition(): boolean {
           return true;
         },
-        speed: null,
+        speed: mainSettings.speed,
       },
       moveSettings: {
         ...restMoveSettings,
@@ -387,8 +387,8 @@ export default class Character {
 
   _createOffscreenCanvas() {
     this._offscreenCanvas = document.createElement('canvas');
-    this._offscreenCanvas.width = this.mainSettings.mainFlipbook.width;
-    this._offscreenCanvas.height = this.mainSettings.mainFlipbook.height;
+    this._offscreenCanvas.width = this.mainSettings.mainRightFlipbook.width;
+    this._offscreenCanvas.height = this.mainSettings.mainRightFlipbook.height;
     this._renderer = this._offscreenCanvas.getContext('2d');
     this._renderer.imageSmoothingEnabled = false;
   }
@@ -442,8 +442,8 @@ export default class Character {
   _setOnChangeJumpFrame() {
     const onChangeHandler = (frameNumber: number, frameCount: number) => {
       const middleFrameNumber = Math.ceil(frameCount / 2);
-      if (frameNumber > 1 && frameNumber < middleFrameNumber) this._changePosition(0, -8);
-      if (frameNumber > middleFrameNumber && frameNumber < frameCount) this._changePosition(0, 8);
+      if (frameNumber > 1 && frameNumber < middleFrameNumber) this._changePosition(0, -32);
+      if (frameNumber > middleFrameNumber && frameNumber < frameCount) this._changePosition(0, 32);
       if (frameNumber === frameCount) {
         this.actionType = this._prevActionType;
       }

@@ -17,10 +17,12 @@ export const SYSTEM_UI_LAYER = '2';
 
 export type LAYER_INDEX = '-1' | '0' | '1' | '2';
 
-interface ILayerCache {
-  canvas: HTMLCanvasElement;
-  ctx: CanvasRenderingContext2D;
-  isDirty: boolean;
+declare global {
+  interface ILayerCache {
+    canvas: HTMLCanvasElement;
+    ctx: CanvasRenderingContext2D;
+    isDirty: boolean;
+  }
 }
 
 // @TODO: Replace createCanvas to PureCanvas
@@ -90,6 +92,27 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
       };
     }
 
+    /**
+     * @returns {ILayerCache}
+     * @description Returns object with canvas and ctx to render it as background for a game.
+     */
+    public getBackground(): ILayerCache {
+      return this._layersCache[BACKGROUND_LAYER];
+    }
+    /**
+     * @returns {ILayerCache}
+     * @description Returns object with canvas and ctx to render it as foreground for a game.
+     */
+    public getForeground(): ILayerCache {
+      return this._layersCache[FOREGROUND_LAYER];
+    }
+
+    /**
+     * @returns {Array} - Returns Map with place and RenderedObject
+     */
+    public getObjects(): Map<string, IRenderedObject> {
+      return this._layers[ZERO_LAYER];
+    }
 
     [_onMouseMoveHandler](event: MouseEvent) {
       this._hoverTilePlace(...this._transformEventCoordsToGridCoords(event.offsetX, event.offsetY));

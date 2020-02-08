@@ -22,7 +22,7 @@ declare global {
   interface IMainOptions {
     mainFlipbook: string | string[];
 
-    checkPosition(): boolean,
+    checkPosition?(): boolean,
 
     speed: number,
   }
@@ -30,45 +30,45 @@ declare global {
   interface IMoveSettings {
     moveRightFlipbook: Flipbook,
     moveLeftFlipbook: Flipbook,
-    moveRightCode: string,
-    moveLeftCode: string,
-    alternativeMoveRightCode: string,
-    alternativeMoveLeftCode: string,
+    moveRightCode?: string,
+    moveLeftCode?: string,
+    alternativeMoveRightCode?: string,
+    alternativeMoveLeftCode?: string,
   }
 
   interface IMoveOptions {
     moveFlipbook: string[],
-    moveRightCode: string,
-    moveLeftCode: string,
-    alternativeMoveRightCode: string,
-    alternativeMoveLeftCode: string,
-    moveFlipbookMeta: any,
+    moveRightCode?: string,
+    moveLeftCode?: string,
+    alternativeMoveRightCode?: string,
+    alternativeMoveLeftCode?: string,
+    moveFlipbookMeta?: any,
   }
 
   interface IJumpSettings {
     jumpRightFlipbook: Flipbook,
     jumpLeftFlipbook: Flipbook,
-    jumpCode: string,
-    alternativeJumpCode: string,
+    jumpCode?: string,
+    alternativeJumpCode?: string,
   }
 
   interface IJumpOptions {
     jumpFlipbook: string[],
-    jumpCode: string,
-    alternativeJumpCode: string,
-    jumpFlipbookMeta: any,
+    jumpCode?: string,
+    alternativeJumpCode?: string,
+    jumpFlipbookMeta?: any,
   }
 
   interface IAttackSettings {
     attackRightFlipbook: Flipbook,
     attackLeftFlipbook: Flipbook,
-    attackCode: string,
+    attackCode?: string,
   }
 
   interface IAttackOptions {
     attackFlipbook: string[],
-    attackCode: string,
-    attackFlipbookMeta: any,
+    attackCode?: string,
+    attackFlipbookMeta?: any,
   }
 
   interface ICharacterCreate {
