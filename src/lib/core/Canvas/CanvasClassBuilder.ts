@@ -1,23 +1,26 @@
-import Canvas from '.';
+import Canvas from './Canvas';
 
 import SelectableCanvasMixin from './mixins/selectableCanvas';
 import ResizeableCanvasMixin from './mixins/resizeableCanvas';
-import TileableCanvasMixin from './mixins/tileableCanvas';
+import TileableCanvasMixin from './mixins/tileableCanvas/tileableCanvas';
+import HoverableTileCanvasMixin from './mixins/hoverableTileCanvas';
 import DrawableCanvasMixin from './mixins/drawableCanvas';
 
 const MIXINS: Hash = {
   selectable: SelectableCanvasMixin,
   resizable: ResizeableCanvasMixin,
   tileable: TileableCanvasMixin,
+  hoverable: HoverableTileCanvasMixin,
   drawable: DrawableCanvasMixin,
 };
 
 export default class CanvasClassBuilder {
-  private _class: any = Canvas;
+  private _class: typeof Canvas = Canvas;
   private _mixins: any = {
     selectable: false,
     resizable: false,
     tileable: false,
+    hoverable: false,
     drawable: false,
   };
 
@@ -33,6 +36,11 @@ export default class CanvasClassBuilder {
 
   applyTileableMixin() {
     this._mixins.tileable = true;
+    return this;
+  }
+
+  applyHoverableMixin() {
+    this._mixins.hoverable = true;
     return this;
   }
 

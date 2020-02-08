@@ -51,7 +51,7 @@ export default class Point implements IPoint {
     return `${this.y}${DELIMITER}${this.x}`;
   }
 
-  public toArray() {
+  public toArray(): [number, number] {
     return [this.x, this.y];
   }
 

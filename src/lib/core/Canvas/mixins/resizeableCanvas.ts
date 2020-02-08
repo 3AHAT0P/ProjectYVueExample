@@ -1,31 +1,46 @@
-import Canvas from '..';
+import { updateInheritanceSequance, checkInheritanceSequance } from '@/lib/core/utils';
+
+import Canvas, { CanvasOptions, isCanvas } from '../Canvas';
+
+export type ResizeableCanvasOptions = CanvasOptions & { };
+
+const CLASS_NAME = Symbol.for('ResizeableCanvas');
+
+export const isResizeable = (Class: any) => checkInheritanceSequance(Class, CLASS_NAME);
+
+interface IResizeableCanvas {
+  sizeMultiplier: number;
+  normalizedWidth: number;
+  normalizedHeight: number;
+
+  _updateMultiplier: (multiplier: number) => void;
+}
 
 const INCREASE_SIZE_MULTIPLIER = 2;
 const DECREASE_SIZE_MULTIPLIER = 1 / 2;
 
+const _modKey = Symbol('_modKey');
 const _onClickHandler = Symbol('_onClickHandler');
 const _onContextMenuHandler = Symbol('_onContextMenuHandler');
 
 /*
   @TODO Example
  */
-const ResizeableCanvasMixin = (BaseClass = Canvas) => {
-  if (!(BaseClass === Canvas || Canvas.isPrototypeOf(BaseClass))) {
-    throw new Error('BaseClass isn\'t prototype of Canvas!');
-  }
+const ResizeableCanvasMixin = <T = any>(BaseClass: Constructor = Canvas): Constructor<IResizeableCanvas & T> => {
+  if (!isCanvas(BaseClass)) throw new Error('BaseClass isn\'t prototype of Canvas!');
 
   class ResizeableCanvas extends BaseClass {
+    private [_modKey] = 'ctrlKey';
     private _sizeMultiplier = 1;
 
     public get sizeMultiplier() { return this._sizeMultiplier; }
 
-    public get normalizedHeight() { return this.height / this.sizeMultiplier; }
     public get normalizedWidth() { return this.width / this.sizeMultiplier; }
-
+    public get normalizedHeight() { return this.height / this.sizeMultiplier; }
 
     private [_onClickHandler](event: MouseEvent) {
-      if (event.ctrlKey) {
-        this._resize(INCREASE_SIZE_MULTIPLIER);
+      if ((event as Hash)[this[_modKey]]) {
+        this._updateMultiplier(INCREASE_SIZE_MULTIPLIER);
         event.preventDefault();
         event.stopPropagation();
         this._renderInNextFrame();
@@ -33,22 +48,22 @@ const ResizeableCanvasMixin = (BaseClass = Canvas) => {
     }
 
     private [_onContextMenuHandler](event: MouseEvent) {
-      if (event.ctrlKey) {
-        this._resize(DECREASE_SIZE_MULTIPLIER);
+      if ((event as Hash)[this[_modKey]]) {
+        this._updateMultiplier(DECREASE_SIZE_MULTIPLIER);
         event.preventDefault();
         event.stopPropagation();
         this._renderInNextFrame();
       }
     }
 
-    protected _resize(multiplier: number) {
+    protected _updateMultiplier(multiplier: number) {
       this._sizeMultiplier *= multiplier;
-      this.updateSize(this._el.width * multiplier, this._el.height * multiplier);
+      this.resize(this.width * multiplier, this.height * multiplier);
       // @ts-ignore
-      if (super._resize instanceof Function) super._resize(multiplier);
+      if (super._updateMultiplier instanceof Function) super._updateMultiplier(multiplier);
     }
 
-    constructor(options = {}) {
+    constructor(options: ResizeableCanvasOptions) {
       super(options);
 
       this[_onClickHandler] = this[_onClickHandler].bind(this);
@@ -58,14 +73,16 @@ const ResizeableCanvasMixin = (BaseClass = Canvas) => {
     protected async _initListeners() {
       await super._initListeners();
 
-      this._el.addEventListener('click', this[_onClickHandler]);
-      this._el.addEventListener('contextmenu', this[_onContextMenuHandler], { capture: true });
+      this.canvas.addEventListener('click', this[_onClickHandler]);
+      this.canvas.addEventListener('contextmenu', this[_onContextMenuHandler], { capture: true });
     }
   }
 
-  return ResizeableCanvas;
+  updateInheritanceSequance(ResizeableCanvas, BaseClass, CLASS_NAME);
+
+  return ResizeableCanvas as any;
 };
 
 export default ResizeableCanvasMixin;
 
-export const ResizeableCanvas = ResizeableCanvasMixin();
+export const ResizeableCanvas = ResizeableCanvasMixin<Canvas>();

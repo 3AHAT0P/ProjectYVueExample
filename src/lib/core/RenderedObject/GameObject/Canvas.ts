@@ -134,7 +134,7 @@ export default class GameObjectCanvas extends Canvas {
   }
 
   protected _render(...args: any[]) {
-    this._ctx.imageSmoothingEnabled = this._imageSmoothingEnabled;
+    this._applyImageSmoothing();
     this.clear();
     const selfBoundingRect = {
       x: 0,

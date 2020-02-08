@@ -1,10 +1,12 @@
 import loadImage from '../loadImage';
 
-export default class PureCanvas {
-  protected _canvas: HTMLCanvasElement = document.createElement('canvas');
-  protected _ctx: CanvasRenderingContext2D = this._canvas.getContext('2d');
+export type PureCanvasOptions = { imageSmoothingEnabled?: boolean; };
 
-  protected _imageSmoothingEnabled: boolean = false;
+export default class PureCanvas {
+  private _canvas: HTMLCanvasElement = document.createElement('canvas');
+  private _ctx: CanvasRenderingContext2D = this._canvas.getContext('2d');
+
+  private _imageSmoothingEnabled: boolean = false;
 
   public get canvas(): HTMLCanvasElement { return this._canvas; }
   public get ctx(): CanvasRenderingContext2D { return this._ctx; }
@@ -12,17 +14,41 @@ export default class PureCanvas {
   public get width(): number { return this._canvas.width; }
   public get height(): number { return this._canvas.height; }
 
-  constructor(options: any = {}) {
-    if (options.imageSmoothingEnabled) this._imageSmoothingEnabled = options.imageSmoothingEnabled;
+  protected _updateSource(canvas: HTMLCanvasElement) {
+    this._canvas = canvas;
+    Reflect.set(this._canvas.style, 'image-rendering', 'pixelated');
+    this._ctx = this._canvas.getContext('2d');
   }
 
-  resize(width: number, height: number) {
-    if (Number.isSafeInteger(width)) this._canvas.width = width;
-    if (Number.isSafeInteger(height)) this._canvas.height = height;
+  protected _applyOptions(options: PureCanvasOptions): boolean {
+    if (options == null) return false;
+
+    if (options.imageSmoothingEnabled) this._imageSmoothingEnabled = options.imageSmoothingEnabled;
+
+    return true;
+  }
+
+  protected _disableImageSmoothing() {
+    this._imageSmoothingEnabled = false;
+    this._applyImageSmoothing();
+  }
+
+  protected _applyImageSmoothing() {
     this._ctx.imageSmoothingEnabled = this._imageSmoothingEnabled;
   }
 
-  drawImage(
+  constructor(options: PureCanvasOptions) {
+    this._applyOptions(options);
+    Reflect.set(this._canvas.style, 'image-rendering', 'pixelated');
+  }
+
+  public resize(width: number, height: number) {
+    if (Number.isSafeInteger(width)) this._canvas.width = width;
+    if (Number.isSafeInteger(height)) this._canvas.height = height;
+    this._applyImageSmoothing();
+  }
+
+  public drawImage(
     image: CanvasImageSource,
     sx: number, sy: number, sWidth: number, sHeight: number,
     dx: number, dy: number, dWidth: number, dHeight: number,
@@ -30,22 +56,29 @@ export default class PureCanvas {
     this._ctx.drawImage(image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight);
   }
 
-  drawImageFullFilled(image: CanvasImageSource) {
+  public drawImageFullFilled(image: CanvasImageSource) {
     this.drawImage(image, 0, 0, Number(image.width), Number(image.height), 0, 0, this.width, this.height);
   }
 
-  clear() {
-    this._ctx.clearRect(0, 0, this.width, this.height);
-    this._ctx.imageSmoothingEnabled = this._imageSmoothingEnabled;
+  public fill(color: string = 'white') {
+    this._ctx.save();
+    this._ctx.fillStyle = color;
+    this._ctx.fillRect(0, 0, this.width, this.height);
+    this._ctx.restore();
   }
 
-  async fromDataURL(dataURL: string, getImageSize: boolean = false) {
+  public clear() {
+    this._ctx.clearRect(0, 0, this.width, this.height);
+    this._applyImageSmoothing();
+  }
+
+  public async fromDataURL(dataURL: string, getImageSize: boolean = false) {
     const image = await loadImage(dataURL);
     if (getImageSize) this.resize(image.width, image.height);
     this.drawImageFullFilled(image);
   }
 
-  toDataURL(applicationType: string, quality: number) {
+  public toDataURL(applicationType: string, quality: number): string {
     return this._canvas.toDataURL(applicationType, quality);
   }
 }

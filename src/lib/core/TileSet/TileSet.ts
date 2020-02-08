@@ -82,10 +82,10 @@ export default class TileSet extends BaseClass {
           source,
           sourceURL,
           sourceBoundingRect: {
-            x: col * this._tileSize.x,
-            y: row * this._tileSize.y,
-            width: this._tileSize.x,
-            height: this._tileSize.y,
+            x: col * this._cellSize.x,
+            y: row * this._cellSize.y,
+            width: this._cellSize.x,
+            height: this._cellSize.y,
           },
         });
         this._updateTileByCoord(col, row, '0', tile);
