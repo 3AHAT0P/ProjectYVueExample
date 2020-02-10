@@ -38,6 +38,14 @@ export default class InteractiveObject {
     return this._gameObject.sourceBoundingRect;
   }
 
+  get width() {
+    return this.sourceBoundingRect.width;
+  }
+
+  get height() {
+    return this.sourceBoundingRect.height;
+  }
+
   setPosition(x: number, y: number) {
     this.position = { x, y };
   }

@@ -340,7 +340,7 @@ export default class Character {
     const offset = this._getOffset();
     if (this._moving && this._direction === 'RIGHT') this._changePosition(offset);
     if (this._moving && this._direction === 'LEFT') this._changePosition(-offset);
-
+    if (!this._jumping) this._changePosition(0, 10);
     this._lastRenderTime = Date.now();
     return this.flipbook.currentSprite;
   }
@@ -427,7 +427,7 @@ export default class Character {
     const isWithin = this._coreElement.checkBeyondPosition(
       this.position.x + dx, this.position.y + dy, this.width, this.height,
     );
-    const hasMoveCollisions = this._coreElement.checkMoveCollisions(this);
+    const hasMoveCollisions = this._coreElement.checkMoveCollisions(this, dx, dy);
     if (isWithin && !hasMoveCollisions) {
       this.position.x += dx;
       this.position.y += dy;
@@ -442,8 +442,8 @@ export default class Character {
   _setOnChangeJumpFrame() {
     const onChangeHandler = (frameNumber: number, frameCount: number) => {
       const middleFrameNumber = Math.ceil(frameCount / 2);
-      if (frameNumber > 1 && frameNumber < middleFrameNumber) this._changePosition(0, -32);
-      if (frameNumber > middleFrameNumber && frameNumber < frameCount) this._changePosition(0, 32);
+      if (frameNumber > 1 && frameNumber < middleFrameNumber) this._changePosition(0, -40);
+      if (frameNumber > middleFrameNumber && frameNumber < frameCount) this._changePosition(0, 40);
       if (frameNumber === frameCount) {
         this.actionType = this._prevActionType;
       }

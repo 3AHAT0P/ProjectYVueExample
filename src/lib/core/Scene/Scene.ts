@@ -10,7 +10,7 @@ declare global {
     start(): void,
     pause(): void,
     checkBeyondPosition(x: number, y: number, width: number, height: number): boolean,
-    checkMoveCollisions(object: Character): boolean,
+    checkMoveCollisions(object: Character, xOffset: number, yOffset: number): boolean,
     checkDamageCollisions(object: Character): boolean,
     setBackground(background: ILayerCache): void,
     setForeground(foreground: ILayerCache): void,
@@ -108,10 +108,12 @@ export default class Scene {
   /**
    * If object has collision with any static object returns true.
    * @param {Character} object
+   * @param {number} xOffset - shift on the x axis
+   * @param {number} yOffset - shift on the y axis
    * @returns {boolean}
    */
-  checkMoveCollisions(object: Character) {
-    return this._staticObjects.some(obj => this._detectCollision(object, obj));
+  checkMoveCollisions(object: Character, xOffset: number, yOffset: number) {
+    return this._staticObjects.some(obj => this._detectCollision(object, obj, xOffset, yOffset));
   }
 
   /**
@@ -189,8 +191,15 @@ export default class Scene {
   }
 
   // TODO fix types
-  _detectCollision(a: any, b: any) {
-    const { x: ax, y: ay } = a.position;
+  _detectCollision(
+    a: Character | InteractiveObject,
+    b: Character | InteractiveObject,
+    xOffset: number = 0,
+    yOffset: number = 0,
+  ) {
+    const { x, y } = a.position;
+    const ax = x + xOffset;
+    const ay = y + yOffset;
     const { x: bx, y: by } = b.position;
     const ax2 = ax + a.width;
     const ay2 = ay + a.height;
