@@ -26,6 +26,7 @@ export default class Character {
   private _offscreenCanvas: HTMLCanvasElement;
   private _renderer: CanvasRenderingContext2D;
 
+  public showHitBoxes: boolean;
   actionType: string;
 
   flipbook: Flipbook = null;
@@ -33,6 +34,12 @@ export default class Character {
     mainFlipbook: null,
     mainRightFlipbook: null,
     mainLeftFlipbook: null,
+    hitBoxes: [{
+      id: null,
+      from: null,
+      to: null,
+      options: null,
+    }],
     /**
      * The function should return a boolean value which indicates can a Character move or not.
      *
@@ -80,6 +87,7 @@ export default class Character {
    * @param {string | string[]} mainSettings.mainFlipbook - url or array of url
    * @param {checkPosition} mainSettings.checkPosition - function to check any collisions and possibility to move.
    * @param {number} mainSettings.speed - speed of a Character in px per second
+   * @param {Array} mainSettings.hitboxes - hitboxes of character
    * @param {Object} moveSettings - settings for move action
    * @param {string[]} moveSettings.moveFlipbook - array of url
    * @param {string} moveSettings.moveRightCode - main right move action code
@@ -118,6 +126,7 @@ export default class Character {
           return true;
         },
         speed: mainSettings.speed,
+        hitBoxes: mainSettings.hitBoxes,
       },
       moveSettings: {
         ...restMoveSettings,
@@ -187,6 +196,7 @@ export default class Character {
    * @param {Flipbook} mainSettings.mainRightFlipbook
    * @param {Flipbook} mainSettings.mainLeftFlipbook
    * @param {checkPosition} mainSettings.checkPosition - function to check any collisions and possibility to move.
+   * @param {Array} mainSettings.hitboxes - hitboxes of character
    * @param {number} mainSettings.speed - speed of a Character in px per second
    * @param {Object} moveSettings - settings for move action
    * @param {Flipbook} moveSettings.moveRightFlipbook
@@ -340,8 +350,38 @@ export default class Character {
     const offset = this._getOffset();
     if (this._moving && this._direction === 'RIGHT') this._changePosition(offset);
     if (this._moving && this._direction === 'LEFT') this._changePosition(-offset);
-    if (!this._jumping) this._changePosition(0, 10);
+    if (!this._jumping) this._changePosition(0, 1);
     this._lastRenderTime = Date.now();
+
+    if (this.showHitBoxes) {
+      this._renderer.clearRect(0, 0, this.width, this.height);
+      this._renderer.drawImage(
+        this.flipbook.currentSprite,
+        0,
+        0,
+        this.width,
+        this.height,
+        0,
+        0,
+        this.width,
+        this.height,
+      );
+
+      this.mainSettings.hitBoxes.forEach(hitBox => {
+        const {
+          from: { x: fx, y: fy },
+          to: { x: tx, y: ty },
+        } = hitBox;
+        const width = tx - fx;
+        const height = ty - fy;
+
+        this._renderer.beginPath();
+        this._renderer.rect(fx, fy, width, height);
+        this._renderer.stroke();
+      });
+
+      return this._offscreenCanvas;
+    }
     return this.flipbook.currentSprite;
   }
 
@@ -424,16 +464,33 @@ export default class Character {
   }
 
   _changePosition(dx = 0, dy = 0) {
-    const isWithin = this._coreElement.checkBeyondPosition(
-      this.position.x + dx, this.position.y + dy, this.width, this.height,
-    );
-    const hasMoveCollisions = this._coreElement.checkMoveCollisions(this, dx, dy);
+    const { x, y } = this.position;
+    const isWithin = this.mainSettings.hitBoxes.every(hitBox => {
+      const {
+        from: { x: fx, y: fy },
+        to: { x: tx, y: ty },
+      } = hitBox;
+      const sx = x + fx;
+      const sy = y + fy;
+      const width = tx - fx;
+      const height = ty - fy;
+      return this._coreElement.checkBeyondPosition(
+        sx + dx, sy + dy, width, height,
+      );
+    });
+
+    const hasMoveCollisions = this.mainSettings.hitBoxes.some(hitBox => {
+      return this._coreElement.checkMoveCollisions(this.position, hitBox, dx, dy);
+    });
     if (isWithin && !hasMoveCollisions) {
       this.position.x += dx;
       this.position.y += dy;
       if (this._hooks.onMove instanceof Function) this._hooks.onMove();
     }
-    const isDamageReceived = this._coreElement.checkDamageCollisions(this);
+    const isDamageReceived = this.mainSettings.hitBoxes.some(hitBox => {
+      return this._coreElement.checkDamageCollisions(this.position, hitBox);
+    });
+
     if (isDamageReceived) {
       if (this._hooks.onDamage instanceof Function) this._hooks.onDamage();
     }

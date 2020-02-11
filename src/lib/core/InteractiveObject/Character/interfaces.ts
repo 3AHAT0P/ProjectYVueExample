@@ -1,4 +1,5 @@
 import Flipbook from '@/lib/core/RenderedObject/Flipbook';
+import { IHitBox } from '@/lib/core/RenderedObject/GameObject/GameObject';
 
 declare global {
   interface IHooks {
@@ -13,7 +14,7 @@ declare global {
     mainFlipbook: Flipbook | Sprite;
     mainRightFlipbook: Flipbook,
     mainLeftFlipbook: Flipbook,
-
+    hitBoxes: IHitBox[],
     checkPosition(): boolean,
 
     speed: number,
@@ -21,7 +22,7 @@ declare global {
 
   interface IMainOptions {
     mainFlipbook: string | string[];
-
+    hitBoxes: IHitBox[],
     checkPosition?(): boolean,
 
     speed: number,

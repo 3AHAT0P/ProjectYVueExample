@@ -1,9 +1,9 @@
-import GameObject from '@/lib/core/RenderedObject/GameObject/GameObject';
+import GameObject, { IHitBox } from '@/lib/core/RenderedObject/GameObject/GameObject';
 
 import Point from '@/lib/core/utils/classes/Point';
 
 interface InteractiveObjectOptions {
-  gameObject?: GameObject,
+  gameObject: GameObject,
   coordTiles?: Point[],
   position?: { x: number, y: number },
 }
@@ -44,6 +44,10 @@ export default class InteractiveObject {
 
   get height() {
     return this.sourceBoundingRect.height;
+  }
+
+  get hitBoxes() {
+    return this._gameObject.hitBoxes;
   }
 
   setPosition(x: number, y: number) {

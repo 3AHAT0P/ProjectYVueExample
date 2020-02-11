@@ -34,6 +34,10 @@ export default class Game extends Vue {
     this.loading = true;
   }
 
+  beforeDestroy() {
+    this.scene.pause();
+  }
+
   async init() {
     const tileMap = document.createElement('canvas');
     this.mainTileMap = await TileMap.create({
@@ -53,6 +57,9 @@ export default class Game extends Vue {
       position: { x: width - 200, y: height - 270 },
       mainSettings: {
         mainFlipbook: './sources/PNG/Knight/knight.png',
+        hitBoxes: [{
+          id: 0, from: { x: 24, y: 56 }, to: { x: 72, y: 112 }, options: { color: 0 },
+        }],
         speed: 300,
       },
       moveSettings: {
@@ -87,6 +94,7 @@ export default class Game extends Vue {
         ],
       },
     });
+    player.showHitBoxes = true;
 
     this.scene.addHero(player);
     this.scene.setBackground(background);

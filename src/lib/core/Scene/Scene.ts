@@ -1,7 +1,7 @@
 import Character from '@/lib/core/InteractiveObject/Character/Character';
 import InteractiveObject from '@/lib/core/InteractiveObject/InteractiveObject';
 import Point from '@/lib/core/utils/classes/Point';
-import GameObject from '@/lib/core/RenderedObject/GameObject/GameObject';
+import GameObject, { IHitBox } from '@/lib/core/RenderedObject/GameObject/GameObject';
 
 declare global {
   interface Scene {
@@ -10,11 +10,16 @@ declare global {
     start(): void,
     pause(): void,
     checkBeyondPosition(x: number, y: number, width: number, height: number): boolean,
-    checkMoveCollisions(object: Character, xOffset: number, yOffset: number): boolean,
-    checkDamageCollisions(object: Character): boolean,
+    checkMoveCollisions(position: IPoint, object: IHitBox, xOffset: number, yOffset: number): boolean,
+    checkDamageCollisions(position: IPoint, object: IHitBox): boolean,
     setBackground(background: ILayerCache): void,
     setForeground(foreground: ILayerCache): void,
     addObjects(objects: Map<string, IRenderedObject>): void,
+  }
+
+  interface ICollisionArgument {
+    hitBox: IHitBox,
+    position: IPoint,
   }
 }
 
@@ -22,7 +27,7 @@ declare global {
  * @class Scene - The core of a game.
  */
 export default class Scene {
-  private _staticObjects: any[] = [];
+  private _staticObjects: InteractiveObject[] = [];
   private _dynamicObjects: any[] = [];
   private _canvas: HTMLCanvasElement;
   private _ctx: CanvasRenderingContext2D;
@@ -107,23 +112,52 @@ export default class Scene {
 
   /**
    * If object has collision with any static object returns true.
-   * @param {Character} object
+   * @param {IPoint} position - position of object which want to detect collisions
+   * @param {IHitBox} object
    * @param {number} xOffset - shift on the x axis
    * @param {number} yOffset - shift on the y axis
    * @returns {boolean}
    */
-  checkMoveCollisions(object: Character, xOffset: number, yOffset: number) {
-    return this._staticObjects.some(obj => this._detectCollision(object, obj, xOffset, yOffset));
+  checkMoveCollisions(position: IPoint, object: IHitBox, xOffset: number, yOffset: number) {
+    const a = {
+      hitBox: object,
+      position,
+    };
+
+    return this._staticObjects.some(obj => {
+      return obj.hitBoxes.some((hitBox: IHitBox) => {
+        const b = {
+          hitBox,
+          position: obj.position,
+        };
+
+        return this._detectCollision(a, b, xOffset, yOffset);
+      });
+    });
   }
 
   /**
    * If object has collision with any dynamic object returns true.
    * It means that object receives a damage.
-   * @param {Character} object
+   * @param {IPoint} position - position of object which want to detect damage
+   * @param {IHitBox} object
    * @returns {boolean}
    */
-  checkDamageCollisions(object: Character) {
-    return this._dynamicObjects.some(obj => this._detectCollision(object, obj));
+  checkDamageCollisions(position: IPoint, object: IHitBox) {
+    const a = {
+      hitBox: object,
+      position,
+    };
+
+    return this._dynamicObjects.some(obj => {
+      return obj.hitBoxes.some((hitBox: IHitBox) => {
+        const b = {
+          hitBox,
+          position: obj.position,
+        };
+        return this._detectCollision(a, b);
+      });
+    });
   }
 
   _render() {
@@ -190,21 +224,43 @@ export default class Scene {
     this._staticObjects.forEach(staticObject => this._renderInteractiveObject(staticObject));
   }
 
-  // TODO fix types
   _detectCollision(
-    a: Character | InteractiveObject,
-    b: Character | InteractiveObject,
+    {
+      position: ap,
+      hitBox: ahit,
+    }: ICollisionArgument,
+    {
+      position: bp,
+      hitBox: bhit,
+    }: ICollisionArgument,
     xOffset: number = 0,
     yOffset: number = 0,
   ) {
-    const { x, y } = a.position;
-    const ax = x + xOffset;
-    const ay = y + yOffset;
-    const { x: bx, y: by } = b.position;
-    const ax2 = ax + a.width;
-    const ay2 = ay + a.height;
-    const bx2 = bx + b.width;
-    const by2 = by + b.height;
+    const { x: apx, y: apy } = ap;
+    const {
+      from: { x: afx, y: afy },
+      to: { x: atx, y: aty },
+    } = ahit;
+    const asx = Number(apx) + Number(afx);
+    const asy = Number(apy) + Number(afy);
+    const aw = Number(atx) - Number(afx);
+    const ah = Number(aty) - Number(afy);
+    const ax = asx + xOffset;
+    const ay = asy + yOffset;
+    const ax2 = ax + aw;
+    const ay2 = ay + ah;
+
+    const { x: bpx, y: bpy } = bp;
+    const {
+      from: { x: bfx, y: bfy },
+      to: { x: btx, y: bty },
+    } = bhit;
+    const bx = Number(bpx) + Number(bfx);
+    const by = Number(bpy) + Number(bfy);
+    const bw = Number(btx) - Number(bfx);
+    const bh = Number(bty) - Number(bfy);
+    const bx2 = bx + bw;
+    const by2 = by + bh;
 
     if (bx < ax2 && ax < bx2 && by < ay2) { return ay < by2; }
     return false;
