@@ -8,19 +8,23 @@ const CLASS_NAME = Symbol.for('Evented');
 
 export const isEvented = (Class: any) => checkInheritanceSequance(Class, CLASS_NAME);
 
-interface IEvented {
+export interface IEvented {
   on(eventName: string, listener: IListener, ctx?: any): this;
   once(eventName: string, listener: IListener, ctx?: any): this;
   emit(eventName: string, ...data: any[]): this;
   emitSync(eventName: string, ...data: any[]): Promise<this>;
 }
 
+type EventedConstructor = new () => IEvented;
+
 /*
   @TODO Example
  */
-const EventedMixin = <T = any>(BaseClass: Constructor = Object): Constructor<IEvented & T> => {
-  if (isEvented(BaseClass)) return BaseClass;
+const EventedMixin = <T>(BaseClass: T): T & EventedConstructor => {
+  // eslint-disable-next-line no-use-before-define
+  if (isEvented(BaseClass)) return BaseClass as any;
 
+  // @ts-ignore
   class Evented extends BaseClass implements IEvented {
     private [_eventEmitter] = new EventEmitter();
 
@@ -52,4 +56,4 @@ const EventedMixin = <T = any>(BaseClass: Constructor = Object): Constructor<IEv
 
 export default EventedMixin;
 
-export const Evented = EventedMixin<Object>();
+export const Evented = EventedMixin(Object);

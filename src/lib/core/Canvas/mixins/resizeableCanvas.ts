@@ -8,12 +8,15 @@ const CLASS_NAME = Symbol.for('ResizeableCanvas');
 
 export const isResizeable = (Class: any) => checkInheritanceSequance(Class, CLASS_NAME);
 
-interface IResizeableCanvas {
+export interface IResizeableCanvas {
   sizeMultiplier: number;
   normalizedWidth: number;
   normalizedHeight: number;
+}
 
+export interface IResizeableCanvasProtected {
   _updateMultiplier: (multiplier: number) => void;
+  _initListeners(): Promise<void>;
 }
 
 const INCREASE_SIZE_MULTIPLIER = 2;
@@ -26,10 +29,13 @@ const _onContextMenuHandler = Symbol('_onContextMenuHandler');
 /*
   @TODO Example
  */
-const ResizeableCanvasMixin = <T = any>(BaseClass: Constructor = Canvas): Constructor<IResizeableCanvas & T> => {
+const ResizeableCanvasMixin = (BaseClass: typeof Canvas) => {
+  // eslint-disable-next-line no-use-before-define
+  if (isResizeable(BaseClass)) return (BaseClass as any) as typeof ResizeableCanvas;
   if (!isCanvas(BaseClass)) throw new Error('BaseClass isn\'t prototype of Canvas!');
 
-  class ResizeableCanvas extends BaseClass {
+  // @ts-ignore
+  class ResizeableCanvas extends BaseClass implements IResizeableCanvas {
     private [_modKey] = 'ctrlKey';
     private _sizeMultiplier = 1;
 
@@ -63,26 +69,26 @@ const ResizeableCanvasMixin = <T = any>(BaseClass: Constructor = Canvas): Constr
       if (super._updateMultiplier instanceof Function) super._updateMultiplier(multiplier);
     }
 
-    constructor(options: ResizeableCanvasOptions) {
-      super(options);
-
-      this[_onClickHandler] = this[_onClickHandler].bind(this);
-      this[_onContextMenuHandler] = this[_onContextMenuHandler].bind(this);
-    }
-
     protected async _initListeners() {
       await super._initListeners();
 
       this.canvas.addEventListener('click', this[_onClickHandler]);
       this.canvas.addEventListener('contextmenu', this[_onContextMenuHandler], { capture: true });
     }
+
+    constructor(options: ResizeableCanvasOptions) {
+      super(options);
+
+      this[_onClickHandler] = this[_onClickHandler].bind(this);
+      this[_onContextMenuHandler] = this[_onContextMenuHandler].bind(this);
+    }
   }
 
   updateInheritanceSequance(ResizeableCanvas, BaseClass, CLASS_NAME);
 
-  return ResizeableCanvas as any;
+  return ResizeableCanvas;
 };
 
 export default ResizeableCanvasMixin;
 
-export const ResizeableCanvas = ResizeableCanvasMixin<Canvas>();
+export const ResizeableCanvas = ResizeableCanvasMixin(Canvas);

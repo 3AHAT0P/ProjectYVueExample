@@ -3,15 +3,25 @@ import throttle from 'lodash/throttle';
 import { nextFrame } from '@/lib/core/utils/delayers';
 import { updateInheritanceSequance, checkInheritanceSequance } from '@/lib/core/utils';
 
-import eventedMixin from '@/lib/core/utils/mixins/evented';
+import eventedMixin, { IEvented } from '@/lib/core/utils/mixins/evented';
 
 import PureCanvas, { PureCanvasOptions } from '@/lib/core/utils/classes/PureCanvas';
 
-export type CanvasOptions = PureCanvasOptions & { el: HTMLCanvasElement; size: { width: number; height: number; }; };
+export type CanvasOptions = PureCanvasOptions & { el: HTMLCanvasElement; size?: { width: number; height: number; }; };
 
 const CLASS_NAME = Symbol.for('Canvas');
 
 export const isCanvas = (Class: any) => checkInheritanceSequance(Class, CLASS_NAME);
+
+type BaseInstanceType = PureCanvas & IEvented;
+
+type PureCanvasConstructor = typeof PureCanvas;
+
+interface BaseClassType extends PureCanvasConstructor {
+  new(): BaseInstanceType;
+}
+
+const BaseClass: BaseClassType = eventedMixin(PureCanvas) as any;
 
 /*
   const canvas = await Canvas.create({ el: document.body, size: { width: 64, height: 64 } });
@@ -20,7 +30,8 @@ export const isCanvas = (Class: any) => checkInheritanceSequance(Class, CLASS_NA
     (event) => { if (tile != null) event.ctx.drawImage(tile, 0, 0, 64, 64); },
   );
  */
-export default class Canvas extends eventedMixin<PureCanvas>(PureCanvas) {
+// @ts-ignore
+export default class Canvas extends BaseClass {
   public static async create<T extends Canvas, G extends CanvasOptions>(options: G): Promise<T> {
     const instance = new this(options);
     await instance.init();
@@ -45,7 +56,7 @@ export default class Canvas extends eventedMixin<PureCanvas>(PureCanvas) {
   }
 
   protected _applyOptions(options: CanvasOptions): boolean {
-    if (!super._applyOptions(options)) return false;
+    if (!super._applyOptions(options)) throw new Error('el is required option!');
 
     if (options.el == null) throw new Error('el is required option!');
     this._updateSource(options.el);

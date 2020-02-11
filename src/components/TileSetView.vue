@@ -56,7 +56,7 @@ export default class TileSetView extends Vue {
 
   async init() {
     this.mainTileSet = await TileSet.create({
-      el: this.$refs.canvas,
+      el: this.$refs.canvas as HTMLCanvasElement,
       imageUrl: this.internalImageUrl,
     });
 

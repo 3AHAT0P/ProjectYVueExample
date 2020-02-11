@@ -7,8 +7,12 @@ import { SYSTEM_UI_LAYER } from './tileableCanvas/buildLayers';
 
 export type HoverableTileCanvasOptions = TileableCanvasOptions;
 
-interface IHoverableTileCanvas {
+export interface IHoverableTileCanvas {
+  init(): Promise<void>;
+}
 
+export interface IHoverableTileCanvasProtected {
+  _initListeners(): Promise<void>;
 }
 
 const _onMouseMoveHandler = Symbol('_onMouseMoveHandler');
@@ -24,7 +28,7 @@ const HoverableTileCanvasMixin = <T = any>(BaseClass: Constructor = TileableCanv
 
   if (!isTileable(BaseClass)) throw new Error('BaseClass isn\'t prototype of TileableCanvas!');
 
-  class HoverableTileCanvas extends BaseClass {
+  class HoverableTileCanvas extends BaseClass implements IHoverableTileCanvas {
     private _hoverTile: IRenderedObject = null;
 
     private [_onMouseMoveHandler](event: MouseEvent) {

@@ -83,7 +83,7 @@ import {
   ZERO_LAYER,
   FOREGROUND_LAYER,
   LAYER_INDEX,
-} from '@/lib/core/Canvas/mixins/tileableCanvas';
+} from '@/lib/core/Canvas/mixins/tileableCanvas/buildLayers';
 
 import Point from '@/lib/core/utils/classes/Point';
 import Tile from '@/lib/core/RenderedObject/Tile';
@@ -129,7 +129,7 @@ export default class TileMapEditor extends Vue {
 
   async init() {
     this.mainTileMap = await TileMap.create({
-      el: this.$refs.canvas,
+      el: this.$refs.canvas as HTMLCanvasElement,
       metadataUrl: this.metadataUrl,
       size: {
         width: this.tileMapX,

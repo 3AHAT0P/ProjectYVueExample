@@ -2,7 +2,7 @@ import { updateInheritanceSequance, checkInheritanceSequance } from '@/lib/core/
 
 import Canvas, { CanvasOptions, isCanvas } from '../Canvas';
 
-export type SelectableCanvasOptions = CanvasOptions & { modKey: string; };
+export type SelectableCanvasOptions = CanvasOptions & { modKey?: string; };
 
 const CLASS_NAME = Symbol.for('SelectableCanvas');
 
@@ -16,14 +16,21 @@ export interface ISelectableCanvas {
 
 }
 
+export interface ISelectableCanvasProtected {
+  _applyOptions(options: SelectableCanvasOptions): boolean;
+  _initListeners(): Promise<void>;
+}
+
 /*
   @TODO Example
  */
-const SelectableCanvasMixin = <T = any>(BaseClass: Constructor = Canvas): Constructor<ISelectableCanvas & T> => {
-  if (isSelectable(BaseClass)) return BaseClass;
+const SelectableCanvasMixin = (BaseClass: typeof Canvas) => {
+  // eslint-disable-next-line no-use-before-define
+  if (isSelectable(BaseClass)) return (BaseClass as any) as typeof SelectableCanvas;
   if (!isCanvas(BaseClass)) throw new Error('BaseClass isn\'t prototype of Canvas!');
 
-  class SelectableCanvas extends BaseClass {
+  // @ts-ignore
+  class SelectableCanvas extends BaseClass implements ISelectableCanvas {
     private [_modKey] = 'shiftKey';
     private _eventDown: MouseEvent = null;
 
@@ -73,26 +80,26 @@ const SelectableCanvasMixin = <T = any>(BaseClass: Constructor = Canvas): Constr
       return true;
     }
 
+    protected async _initListeners() {
+      await super._initListeners();
+
+      this.canvas.addEventListener('mousedown', this[_onMouseDownHandler], { passive: true });
+      this.canvas.addEventListener('mouseup', this[_onMouseUpHandler], { passive: true });
+    }
+
     constructor(options: SelectableCanvasOptions) {
       super(options);
 
       this[_onMouseDownHandler] = this[_onMouseDownHandler].bind(this);
       this[_onMouseUpHandler] = this[_onMouseUpHandler].bind(this);
     }
-
-    async _initListeners() {
-      await super._initListeners();
-
-      this.canvas.addEventListener('mousedown', this[_onMouseDownHandler], { passive: true });
-      this.canvas.addEventListener('mouseup', this[_onMouseUpHandler], { passive: true });
-    }
   }
 
   updateInheritanceSequance(SelectableCanvas, BaseClass, CLASS_NAME);
 
-  return SelectableCanvas as any;
+  return SelectableCanvas;
 };
 
 export default SelectableCanvasMixin;
 
-export const SelectableCanvas = SelectableCanvasMixin<Canvas>();
+export const SelectableCanvas = SelectableCanvasMixin(Canvas);

@@ -1,18 +1,34 @@
-import CanvasClassBuilder from '@/lib/core/Canvas/CanvasClassBuilder';
-import buildEvent from '@/lib/core/utils/buildEvent';
+import CanvasClassBuilder, {
+  Canvas,
+  IResizeableCanvas,
+  IResizeableCanvasProtected,
+  ResizeableCanvasOptions,
+} from '@/lib/core/Canvas/CanvasClassBuilder';
 import { getRandomArbitraryInt } from '@/utils/';
 
 import GameObject, { IGameObjectMeta } from './GameObject';
+
+type BaseInstanceType = Canvas &
+  IResizeableCanvas & IResizeableCanvasProtected;
+
+type CanvasConstructor = typeof Canvas;
+
+interface BaseClassType extends CanvasConstructor {
+  new(): BaseInstanceType;
+}
+
+const BaseClass: BaseClassType = new CanvasClassBuilder()
+  .applyResizeableMixin()
+  .build() as any;
+
+type TileSetOptions = ResizeableCanvasOptions & { };
 
 const _onMouseDownHandler = Symbol('_onMouseDownHandler');
 const _onMouseMoveHandler = Symbol('_onMouseMoveHandler');
 const _onMouseUpHandler = Symbol('_onMouseUpHandler');
 
-const Canvas = new CanvasClassBuilder()
-  .applyResizeableMixin()
-  .build();
-
-export default class GameObjectCanvas extends Canvas {
+// @ts-ignore
+export default class GameObjectCanvas extends BaseClass {
   private _gameObject: GameObject = null;
 
   private _modKey = 'shiftKey';
@@ -25,7 +41,7 @@ export default class GameObjectCanvas extends Canvas {
 
   private [_onMouseDownHandler](event: MouseEvent) {
     if ((event as any)[this._modKey]) this._eventDown = event;
-    this._el.addEventListener('mousemove', this[_onMouseMoveHandler], { passive: true });
+    this.canvas.addEventListener('mousemove', this[_onMouseMoveHandler], { passive: true });
   }
 
   private [_onMouseMoveHandler](event: MouseEvent) {
@@ -36,7 +52,7 @@ export default class GameObjectCanvas extends Canvas {
   private [_onMouseUpHandler](event: MouseEvent) {
     if (this._eventDown == null) return;
     if ((event as any)[this._modKey]) {
-      this._el.removeEventListener('mousemove', this[_onMouseMoveHandler]);
+      this.canvas.removeEventListener('mousemove', this[_onMouseMoveHandler]);
       const from = {
         x: 0,
         y: 0,
@@ -65,7 +81,7 @@ export default class GameObjectCanvas extends Canvas {
       this._eventDown = null;
       this._eventMove = null;
       this._gameObject.appendHitBox(from, to, options);
-      this.dispatchEvent(buildEvent(':hitBoxsUpdated', null, { hitBoxes: this._gameObject.hitBoxes }));
+      this.emit(':hitBoxsUpdated', { hitBoxes: this._gameObject.hitBoxes });
       this._renderInNextFrame();
     }
   }
@@ -73,8 +89,8 @@ export default class GameObjectCanvas extends Canvas {
   private _drawCurrentRect() {
     if (this._eventDown == null || this._eventMove == null) return;
 
-    const ctx: CanvasRenderingContext2D = this._ctx;
-    this._ctx.save();
+    const ctx = this.ctx;
+    ctx.save();
     ctx.strokeStyle = 'hsla(0, 0%, 0%, .6)';
 
     ctx.strokeRect(
@@ -96,8 +112,8 @@ export default class GameObjectCanvas extends Canvas {
   private _drawHitBoxes() {
     if (this._gameObject.hitBoxes.length === 0) return;
 
-    const ctx: CanvasRenderingContext2D = this._ctx;
-    this._ctx.save();
+    const ctx = this.ctx;
+    ctx.save();
     for (const { from, to, options } of this._gameObject.hitBoxes) {
       ctx.strokeStyle = `hsla(${options.color}, 50%, 50%, .6)`;
       ctx.fillStyle = `hsla(${options.color}, 50%, 50%, .2)`;
@@ -120,7 +136,7 @@ export default class GameObjectCanvas extends Canvas {
 
   private _renderRenderedObject(renderedObject: IRenderedObject, selfBoundingRect: ISourceBoundingRect) {
     const boundingRect = renderedObject.sourceBoundingRect;
-    this._ctx.drawImage(
+    this.ctx.drawImage(
       renderedObject.source,
       boundingRect.x,
       boundingRect.y,
@@ -133,14 +149,21 @@ export default class GameObjectCanvas extends Canvas {
     );
   }
 
+  protected async _initListeners() {
+    await super._initListeners();
+
+    this.canvas.addEventListener('mousedown', this[_onMouseDownHandler], { passive: true });
+    this.canvas.addEventListener('mouseup', this[_onMouseUpHandler], { passive: true });
+  }
+
   protected _render(...args: any[]) {
     this._applyImageSmoothing();
     this.clear();
     const selfBoundingRect = {
       x: 0,
       y: 0,
-      width: this._el.width,
-      height: this._el.height,
+      width: this.width,
+      height: this.height,
     };
     this._renderRenderedObject(this._gameObject, selfBoundingRect);
 
@@ -158,27 +181,16 @@ export default class GameObjectCanvas extends Canvas {
     this[_onMouseUpHandler] = this[_onMouseUpHandler].bind(this);
   }
 
-  async _initListeners() {
-    await super._initListeners();
-
-    this._el.addEventListener('mousedown', this[_onMouseDownHandler], { passive: true });
-    this._el.addEventListener('mouseup', this[_onMouseUpHandler], { passive: true });
-  }
-
-  public updateSize(width: number, height: number) {
-    super.updateSize(width, height);
-  }
-
   public updateCache(image: CanvasImageSource) {
     this._gameObject.drawImage(image);
-    this.updateSize(this._gameObject.width * this.sizeMultiplier, this._gameObject.height * this.sizeMultiplier);
-    this.dispatchEvent(buildEvent(':hitBoxsUpdated', null, { hitBoxes: this._gameObject.hitBoxes }));
+    this.resize(this._gameObject.width * this.sizeMultiplier, this._gameObject.height * this.sizeMultiplier);
+    this.emit(':hitBoxsUpdated', { hitBoxes: this._gameObject.hitBoxes });
   }
 
   public clearGameObject(): void {
     this._gameObject.clear();
     this._renderInNextFrame();
-    this.dispatchEvent(buildEvent(':hitBoxsUpdated', null, { hitBoxes: this._gameObject.hitBoxes }));
+    this.emit(':hitBoxsUpdated', { hitBoxes: this._gameObject.hitBoxes });
   }
 
   public save() {
@@ -188,9 +200,9 @@ export default class GameObjectCanvas extends Canvas {
   public async load(meta: IGameObjectMeta) {
     await this._gameObject.load(meta);
     const size = Math.max(this._gameObject.sourceBoundingRect.width, this._gameObject.sourceBoundingRect.height);
-    while (160 / size > this.sizeMultiplier) this._resize(2);
-    while (330 / size < this.sizeMultiplier) this._resize(1 / 2);
-    this.updateSize(this._gameObject.width * this.sizeMultiplier, this._gameObject.height * this.sizeMultiplier);
+    while (160 / size > this.sizeMultiplier) this._updateMultiplier(2);
+    while (330 / size < this.sizeMultiplier) this._updateMultiplier(1 / 2);
+    this.resize(this._gameObject.width * this.sizeMultiplier, this._gameObject.height * this.sizeMultiplier);
     this._renderInNextFrame();
   }
 }

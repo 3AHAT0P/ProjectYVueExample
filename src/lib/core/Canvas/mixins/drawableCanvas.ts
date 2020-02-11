@@ -25,8 +25,15 @@ export const isDrawable = (Class: any) => checkInheritanceSequance(Class, CLASS_
 
 export type DrawableCanvasOptions = TileableCanvasOptions & { };
 
-interface IDrawableCanvas {
+export interface IDrawableCanvas {
+  currentLayerIndex: LAYER_INDEX;
 
+  updateCurrentLayerIndex(level: LAYER_INDEX): Promise<void>;
+  updateCurrentTiles(tiles: Map<string, Tile>): Promise<void>;
+}
+
+export interface IDrawableCanvasProtected {
+  _initListeners(): Promise<void>;
 }
 
 const DRAW_STATE_ENUM = {
@@ -39,7 +46,7 @@ const DrawableCanvasMixin = <T = any>(BaseClass: Constructor = TileableCanvas): 
 
   if (!isTileable(BaseClass)) throw new Error('BaseClass isn\'t prototype of TileableCanvas!');
 
-  class DrawableCanvas extends BaseClass {
+  class DrawableCanvas extends BaseClass implements IDrawableCanvas {
     private _drawState = false;
     private _drawType = DRAW_STATE_ENUM.DRAW;
     private _cursor = new Cursor(this.canvas, { offset: { x: 0, y: 0 } });

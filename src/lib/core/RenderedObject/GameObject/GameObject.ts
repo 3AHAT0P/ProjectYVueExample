@@ -34,7 +34,7 @@ export default class GameObject extends RenderedObject implements IRenderedObjec
     return instance;
   }
 
-  private _source: PureCanvas = new PureCanvas();
+  private _source: PureCanvas = new PureCanvas({});
 
   private _name: string = null;
   private _hitBoxes: IHitBox[] = [];

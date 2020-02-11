@@ -15,9 +15,9 @@ import {
   SYSTEM_UI_LAYER,
 } from './buildLayers';
 
-export type TileableCanvasOptions = CanvasOptions & { cellSize: { x: number, y: number }; };
+export type TileableCanvasOptions = CanvasOptions & { cellSize?: { x: number, y: number }; };
 
-interface ITileableCanvas {
+export interface ITileableCanvas {
   readonly sizeInTiles: { x: number, y: number };
   readonly tiles: Map<string, IRenderedObject>;
   readonly layers: Hash<Layer>;
@@ -31,6 +31,18 @@ interface ITileableCanvas {
   updateTilesCount(width: number, height: number): void;
 }
 
+export interface ITileableCanvasProtected {
+  _getTile(x: number, y: number, z?: LAYER_INDEX): IRenderedObject;
+  _updateTileByCoord(x: number, y: number, z: LAYER_INDEX, tile: IRenderedObject): void;
+  _clearLayer(level: '-1' | '0' | '1' | '2' | 'ALL'): void;
+  _drawLayers(): void;
+  _appendInteractiveObject(iObject: InteractiveObject): void;
+  _render(time: number, clearRender?: boolean): void;
+  _transformEventCoordsToGridCoords(eventX: number, eventY: number): [number, number];
+  _updateMultiplier(multiplier: number): void;
+  _applyOptions(options: TileableCanvasOptions): boolean;
+}
+
 const CLASS_NAME = Symbol.for('TileableCanvas');
 
 export const isTileable = (Class: any) => checkInheritanceSequance(Class, CLASS_NAME);
@@ -39,7 +51,6 @@ const LAYER_INDICES: LAYER_INDEX[] = [BACKGROUND_LAYER, ZERO_LAYER, FOREGROUND_L
 
 const TileableCanvasMixin = <T = any>(BaseClass: Constructor = Canvas): Constructor<ITileableCanvas & T> => {
   if (isTileable(BaseClass)) return BaseClass;
-
   if (!isCanvas(BaseClass)) throw new Error('BaseClass isn\'t prototype of Canvas!');
 
   class TileableCanvas extends BaseClass implements ITileableCanvas {

@@ -19,7 +19,12 @@ export const isSavable = (Class: any) => checkInheritanceSequance(Class, CLASS_N
 
 export type SavableCanvasOptions = TileableCanvasOptions & { };
 
-interface ISavableCanvas {
+export interface ISavableCanvas {
+  save(): Promise<{ meta: any; }>;
+  load({ meta, imageHash }: any): Promise<void>;
+}
+
+export interface ISavableCanvasProtected {
 
 }
 
