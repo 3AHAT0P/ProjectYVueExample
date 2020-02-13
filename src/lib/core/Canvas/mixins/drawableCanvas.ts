@@ -129,8 +129,8 @@ const DrawableCanvasMixin = <T = any>(BaseClass: Constructor = TileableCanvas): 
       this.canvas.addEventListener('mouseleave', this[_onMouseLeaveHandler], { passive: true });
     }
 
-    constructor(options: DrawableCanvasOptions) {
-      super(options);
+    constructor() {
+      super();
 
       this[_onContextMenuHandler] = this[_onContextMenuHandler].bind(this);
       this[_onMouseDownHandler] = this[_onMouseDownHandler].bind(this);

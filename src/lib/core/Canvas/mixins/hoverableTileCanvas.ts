@@ -66,6 +66,8 @@ const HoverableTileCanvasMixin = <T = any>(BaseClass: Constructor = TileableCanv
 
     private _hoverTilePlace(x: number, y: number) {
       const layer = this._layers[SYSTEM_UI_LAYER];
+
+      // Clear layer
       for (const [key, cell] of layer.entries()) {
         if (cell != null) {
           const [_x, _y] = layer.parseKey(key);
@@ -74,6 +76,7 @@ const HoverableTileCanvasMixin = <T = any>(BaseClass: Constructor = TileableCanv
           this._updateTileByCoord(_x, _y, SYSTEM_UI_LAYER, null);
         }
       }
+      if (x === -1 && y === -1) return;
       this._updateTileByCoord(x, y, SYSTEM_UI_LAYER, this._hoverTile);
     }
 

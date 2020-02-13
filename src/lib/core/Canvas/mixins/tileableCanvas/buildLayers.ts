@@ -18,7 +18,8 @@ export class LayerCache extends PureCanvas {
 }
 
 export class Layer extends Map<string, IRenderedObject> {
-  private _cache: LayerCache = new LayerCache({});
+  private _cache: LayerCache = new LayerCache();
+  private _cellSize: { width: number, height: number } = { width: 0, height: 0 };
 
   public get isDirty() { return this._cache.isDirty; }
 
@@ -33,12 +34,17 @@ export class Layer extends Map<string, IRenderedObject> {
         tileBoundingRect.y,
         tileBoundingRect.width,
         tileBoundingRect.height,
-        x * tileBoundingRect.x,
-        y * tileBoundingRect.y,
+        x * this._cellSize.width,
+        y * this._cellSize.height,
         tileBoundingRect.width,
         tileBoundingRect.height,
       );
     }
+  }
+
+  constructor(...args: any[]) {
+    super(...args);
+    this._cache.applyOptions({});
   }
 
   public set(key: string, data: IRenderedObject): this {
@@ -69,8 +75,9 @@ export class Layer extends Map<string, IRenderedObject> {
   public invalidateCache() { this._cache.invalidate(); }
   public validateCache() { this._cache.validate(); }
 
-  public resize(width: number, height: number) {
+  public resize(width: number, height: number, cellSize: { width: number, height: number }) {
     this._cache.resize(width, height);
+    this._cellSize = cellSize;
     this.invalidateCache();
   }
 
@@ -110,23 +117,27 @@ export class Layer extends Map<string, IRenderedObject> {
 }
 
 export class GridLayer {
-  private _cache: LayerCache = new LayerCache({});
+  private _cache: LayerCache = new LayerCache();
   private _columnCount: number = 0;
   private _rowCount: number = 0;
+  private _lineWidth: number = 0.4;
 
   public get isDirty() { return this._cache.isDirty; }
+
+  public get lineWidth() { return this._lineWidth; }
+  public set lineWidth(value) { this._lineWidth = value; }
 
   private _render() {
     const { ctx, width, height } = this._cache;
     const cellWidth = width / this._columnCount;
-    const cellHeight = width / this._rowCount;
+    const cellHeight = height / this._rowCount;
 
     this._cache.clear();
     ctx.save();
     ctx.strokeStyle = 'hsla(0, 100%, 0%, 60%)';
     ctx.beginPath();
     ctx.setLineDash([4, 2]);
-    ctx.lineWidth = 0.4;
+    ctx.lineWidth = this._lineWidth;
     for (let i = 0; i <= this._columnCount; i += 1) {
       const lineX = i * cellWidth;
       ctx.moveTo(lineX, 0);
@@ -139,6 +150,10 @@ export class GridLayer {
     }
     ctx.stroke();
     ctx.restore();
+  }
+
+  constructor() {
+    this._cache.applyOptions({});
   }
 
   public invalidateCache() { this._cache.invalidate(); }

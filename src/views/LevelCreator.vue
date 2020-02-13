@@ -90,7 +90,7 @@ export default class LevelCreator extends Vue {
 
   selectGameObject(gameObject: GameObject) {
     this.renderedObject = new Map([[new Point(0, 0).toReverseString(), gameObject]]);
-    this.currentTileCanvas.addEventListener(':render', (event: any) => {
+    this.currentTileCanvas.on(':render', (event: any) => {
       drawImageFromMap(
         this.renderedObject,
         event.ctx,
@@ -98,18 +98,18 @@ export default class LevelCreator extends Vue {
         this.currentTileCanvas.height,
         true,
       );
-    }, { once: true });
-    this.currentTileCanvas.dispatchEvent(new Event(':renderRequest'));
+    });
+    this.currentTileCanvas.emit(':renderRequest');
   }
 
   updateTiles(tiles: Map<string, Tile>) {
     if (tiles == null) return;
 
     this.renderedObject = tiles;
-    this.currentTileCanvas.addEventListener(':render', (event: any) => {
+    this.currentTileCanvas.on(':render', (event: any) => {
       drawImageFromMap(tiles, event.ctx, this.currentTileCanvas.width, this.currentTileCanvas.height, true);
-    }, { once: true });
-    this.currentTileCanvas.dispatchEvent(new Event(':renderRequest'));
+    });
+    this.currentTileCanvas.emit(':renderRequest');
   }
 }
 </script>

@@ -115,11 +115,9 @@ export default class TileSet extends BaseClass {
 
   protected _applyOptions(options: TileSetOptions): boolean {
     if (!super._applyOptions(options)) throw new Error('imageUrl is required option!');
-
     if (options.imageUrl == null) throw new Error('imageUrl is required option!');
     this._imageSrcLink = options.imageUrl;
     this._metadataSrcLink = options.metadataUrl;
-
     return true;
   }
 

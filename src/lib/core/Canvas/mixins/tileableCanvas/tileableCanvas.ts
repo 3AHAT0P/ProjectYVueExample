@@ -96,7 +96,7 @@ const TileableCanvasMixin = <T = any>(BaseClass: Constructor = Canvas): Construc
 
     private _drawGrid() {
       const renderedObject = this._gridLayer.getRenderedObject();
-      this._ctx.drawImage(
+      this.ctx.drawImage(
         renderedObject.source,
         renderedObject.sourceBoundingRect.x,
         renderedObject.sourceBoundingRect.y,
@@ -110,8 +110,9 @@ const TileableCanvasMixin = <T = any>(BaseClass: Constructor = Canvas): Construc
     }
 
     private _resizeLayers() {
+      const cellSize = { width: this._cellSize.x, height: this._cellSize.y };
       for (const layerIndex of LAYER_INDICES) {
-        this._layers[layerIndex].resize(this.normalizedWidth, this.normalizedHeight);
+        this._layers[layerIndex].resize(this.normalizedWidth, this.normalizedHeight, cellSize);
       }
       this._gridLayer.resize(this.normalizedWidth, this.normalizedHeight, this._columnsNumber, this._rowsNumber);
     }
@@ -122,8 +123,9 @@ const TileableCanvasMixin = <T = any>(BaseClass: Constructor = Canvas): Construc
 
     protected _updateTileByCoord(x: number, y: number, z: LAYER_INDEX = ZERO_LAYER, tile: IRenderedObject) {
       const layer = this._layers[z];
-      if (tile != null && layer.take(x, y) !== tile) layer.add(x, y, tile);
-      else if (layer.exist(x, y)) layer.remove(x, y);
+      if (tile != null) {
+        if (layer.take(x, y) !== tile) layer.add(x, y, tile);
+      } else if (layer.exist(x, y)) layer.remove(x, y);
     }
 
     protected _clearLayer(level: LAYER_INDEX | 'ALL') {
@@ -136,7 +138,7 @@ const TileableCanvasMixin = <T = any>(BaseClass: Constructor = Canvas): Construc
     protected _drawLayers() {
       for (const layerIndex of this._visibleLayers) {
         const renderedObject = this._layers[layerIndex].getRenderedObject();
-        this._ctx.drawImage(
+        this.ctx.drawImage(
           renderedObject.source,
           renderedObject.sourceBoundingRect.x,
           renderedObject.sourceBoundingRect.y,
@@ -181,7 +183,8 @@ const TileableCanvasMixin = <T = any>(BaseClass: Constructor = Canvas): Construc
       this._cellSize.x *= multiplier;
       this._cellSize.y *= multiplier;
       // @ts-ignore
-      if (super._resize != null) super._updateMultiplier(multiplier);
+      if (super._updateMultiplier != null) super._updateMultiplier(multiplier);
+      this._gridLayer.resize(this.width, this.height, this.sizeInTiles.x, this.sizeInTiles.y);
       this._renderInNextFrame();
     }
 

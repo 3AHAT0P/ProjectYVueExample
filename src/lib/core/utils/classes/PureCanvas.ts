@@ -1,8 +1,16 @@
 import loadImage from '../loadImage';
+import nextMicro from '../delayers/nextMicro';
 
 export type PureCanvasOptions = { imageSmoothingEnabled?: boolean; };
 
 export default class PureCanvas {
+  public static async create<T extends PureCanvas, G extends PureCanvasOptions>(options: G): Promise<T> {
+    const instance = new this();
+    instance.applyOptions(options);
+    await instance.init();
+    return <T>instance;
+  }
+
   private _canvas: HTMLCanvasElement = document.createElement('canvas');
   private _ctx: CanvasRenderingContext2D = this._canvas.getContext('2d');
 
@@ -37,9 +45,16 @@ export default class PureCanvas {
     this._ctx.imageSmoothingEnabled = this._imageSmoothingEnabled;
   }
 
-  constructor(options: PureCanvasOptions) {
-    this._applyOptions(options);
+  constructor() {
     Reflect.set(this._canvas.style, 'image-rendering', 'pixelated');
+  }
+
+  public applyOptions(options: PureCanvasOptions) {
+    this._applyOptions(options);
+  }
+
+  public async init(): Promise<void> {
+    return null;
   }
 
   public resize(width: number, height: number) {

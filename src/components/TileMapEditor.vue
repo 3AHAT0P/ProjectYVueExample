@@ -99,7 +99,7 @@ export default class TileMapEditor extends Vue {
 
   private blockName: string = 'tile-map-editor';
 
-  private mainTileMap: any = null;
+  private mainTileMap: TileMap = null;
   private metadataUrl: string = `${BASE_URL}tilemaps/tilemap.json`;
 
   private levelsENUM: any = null;
@@ -140,7 +140,7 @@ export default class TileMapEditor extends Vue {
     this.tileMapX = this.mainTileMap.sizeInTiles.x;
     this.tileMapY = this.mainTileMap.sizeInTiles.y;
 
-    this.mainTileMap.addEventListener(':multiSelect', this.onMultiSelect);
+    this.mainTileMap.on(':multiSelect', this.onMultiSelect);
   }
 
   @Watch('tiles')

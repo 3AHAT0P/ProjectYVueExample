@@ -87,8 +87,8 @@ const SelectableCanvasMixin = (BaseClass: typeof Canvas) => {
       this.canvas.addEventListener('mouseup', this[_onMouseUpHandler], { passive: true });
     }
 
-    constructor(options: SelectableCanvasOptions) {
-      super(options);
+    constructor() {
+      super();
 
       this[_onMouseDownHandler] = this[_onMouseDownHandler].bind(this);
       this[_onMouseUpHandler] = this[_onMouseUpHandler].bind(this);

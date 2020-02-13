@@ -130,8 +130,8 @@ export default class TileMap extends BaseClass {
   protected _applyOptions(options: TileMapOptions): boolean {
     if (!super._applyOptions(options)) throw new Error('metadataUrl is required option!');
 
-    if (options.metadataUrl == null) throw new Error('metadataUrl is required option!');
-    this._metadataSrcLink = options.metadataUrl;
+    if (options.metadataUrl == null) console.log(42); // throw new Error('metadataUrl is required option!');
+    else this._metadataSrcLink = options.metadataUrl;
 
     return true;
   }

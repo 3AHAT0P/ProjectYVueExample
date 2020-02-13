@@ -76,8 +76,8 @@ const ResizeableCanvasMixin = (BaseClass: typeof Canvas) => {
       this.canvas.addEventListener('contextmenu', this[_onContextMenuHandler], { capture: true });
     }
 
-    constructor(options: ResizeableCanvasOptions) {
-      super(options);
+    constructor() {
+      super();
 
       this[_onClickHandler] = this[_onClickHandler].bind(this);
       this[_onContextMenuHandler] = this[_onContextMenuHandler].bind(this);

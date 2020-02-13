@@ -34,7 +34,7 @@ export default class GameObject extends RenderedObject implements IRenderedObjec
     return instance;
   }
 
-  private _source: PureCanvas = new PureCanvas({});
+  private _source: PureCanvas = new PureCanvas();
 
   private _name: string = null;
   private _hitBoxes: IHitBox[] = [];
@@ -73,6 +73,11 @@ export default class GameObject extends RenderedObject implements IRenderedObjec
   private _drawImage(image: CanvasImageSource) {
     this.clear();
     this._source.drawImageFullFilled(image);
+  }
+
+  constructor(options: any) {
+    super(options);
+    this._source.applyOptions({});
   }
 
   public appendHitBox(from: IPoint, to: IPoint, options: IHitBoxOptions) {

@@ -1,6 +1,6 @@
 import throttle from 'lodash/throttle';
 
-import { nextFrame } from '@/lib/core/utils/delayers';
+import { nextFrame, nextMacro } from '@/lib/core/utils/delayers';
 import { updateInheritanceSequance, checkInheritanceSequance } from '@/lib/core/utils';
 
 import eventedMixin, { IEvented } from '@/lib/core/utils/mixins/evented';
@@ -33,7 +33,8 @@ const BaseClass: BaseClassType = eventedMixin(PureCanvas) as any;
 // @ts-ignore
 export default class Canvas extends BaseClass {
   public static async create<T extends Canvas, G extends CanvasOptions>(options: G): Promise<T> {
-    const instance = new this(options);
+    const instance = new this();
+    instance.applyOptions(options);
     await instance.init();
     return <T>instance;
   }
@@ -61,19 +62,20 @@ export default class Canvas extends BaseClass {
     if (options.el == null) throw new Error('el is required option!');
     this._updateSource(options.el);
 
-    if (options.size != null) this.resize(options.size.width, options.size.height);
+    if (options.size != null) nextMacro(() => this.resize(options.size.width, options.size.height));
 
     return true;
   }
 
-  constructor(options: CanvasOptions) {
-    super(options);
+  constructor() {
+    super();
 
     this._render = throttle(this._render.bind(this), 16);
     // this._renderInNextFrame = this._renderInNextFrame.bind(this);
   }
 
   public async init() {
+    await super.init();
     await this._initListeners();
 
     this._renderInNextFrame();

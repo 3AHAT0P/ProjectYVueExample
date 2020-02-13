@@ -81,7 +81,7 @@ export default class CanvasClassBuilder {
   }
 
   applySavableMixin() {
-    this._mixins.drawable = true;
+    this._mixins.savable = true;
     return this;
   }
 

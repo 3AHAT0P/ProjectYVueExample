@@ -172,8 +172,8 @@ export default class GameObjectCanvas extends BaseClass {
     // this.dispatchEvent(buildEvent(':render', null, { ctx: this._ctx }));
   }
 
-  constructor(options: any = {}) {
-    super(options);
+  constructor() {
+    super();
     this._gameObject = new GameObject({});
 
     this[_onMouseDownHandler] = this[_onMouseDownHandler].bind(this);
