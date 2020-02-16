@@ -54,7 +54,7 @@ export default class Game extends Vue {
     this.scene = new Scene(this.$el, width, height);
     const player = await Character.create({
       coreElement: this.scene,
-      position: { x: width - 200, y: height - 270 },
+      position: { x: width - 200, y: height - 280 },
       mainSettings: {
         mainFlipbook: './sources/PNG/Knight/knight.png',
         hitBoxes: [{

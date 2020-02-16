@@ -350,7 +350,7 @@ export default class Character {
     const offset = this._getOffset();
     if (this._moving && this._direction === 'RIGHT') this._changePosition(offset);
     if (this._moving && this._direction === 'LEFT') this._changePosition(-offset);
-    if (!this._jumping) this._changePosition(0, 1);
+    if (!this._jumping) this._changePosition(0, 4);
     this._lastRenderTime = Date.now();
 
     if (this.showHitBoxes) {
@@ -479,28 +479,49 @@ export default class Character {
       );
     });
 
-    const hasMoveCollisions = this.mainSettings.hitBoxes.some(hitBox => {
-      return this._coreElement.checkMoveCollisions(this.position, hitBox, dx, dy);
-    });
-    if (isWithin && !hasMoveCollisions) {
-      this.position.x += dx;
-      this.position.y += dy;
+    const canMove = {
+      up: Number.MAX_SAFE_INTEGER,
+      down: Number.MAX_SAFE_INTEGER,
+      left: Number.MAX_SAFE_INTEGER,
+      right: Number.MAX_SAFE_INTEGER,
+    };
+
+    for (const hitBox of this.mainSettings.hitBoxes) {
+      const _canMove = this._coreElement.checkMoveCollisions(this.position, hitBox, dx, dy);
+      if (_canMove != null) {
+        canMove.up = Math.min(canMove.up, _canMove.up);
+        canMove.down = Math.min(canMove.down, _canMove.down);
+        canMove.left = Math.min(canMove.left, _canMove.left);
+        canMove.right = Math.min(canMove.right, _canMove.right);
+      }
+    }
+
+    if (isWithin) {
+      if (dx > 0) this.position.x += Math.min(canMove.right, dx);
+      if (dx < 0) this.position.x += Math.max(-canMove.left, dx);
+      if (dy > 0) this.position.y += Math.min(canMove.down, dy);
+      if (dy < 0) this.position.y += Math.max(-canMove.up, dy);
+
       if (this._hooks.onMove instanceof Function) this._hooks.onMove();
     }
-    const isDamageReceived = this.mainSettings.hitBoxes.some(hitBox => {
-      return this._coreElement.checkDamageCollisions(this.position, hitBox);
-    });
 
-    if (isDamageReceived) {
-      if (this._hooks.onDamage instanceof Function) this._hooks.onDamage();
-    }
+    // const isDamageReceived = this.mainSettings.hitBoxes.some(hitBox => {
+    //   return this._coreElement.checkDamageCollisions(this.position, hitBox);
+    // });
+
+    // if (isDamageReceived) {
+    //   if (this._hooks.onDamage instanceof Function) this._hooks.onDamage();
+    // }
   }
 
   _setOnChangeJumpFrame() {
     const onChangeHandler = (frameNumber: number, frameCount: number) => {
+      const JUMP_HEIGHT = 16 * 3;
       const middleFrameNumber = Math.ceil(frameCount / 2);
-      if (frameNumber > 1 && frameNumber < middleFrameNumber) this._changePosition(0, -40);
-      if (frameNumber > middleFrameNumber && frameNumber < frameCount) this._changePosition(0, 40);
+      if (frameNumber > 1 && frameNumber < middleFrameNumber) this._changePosition(0, -JUMP_HEIGHT);
+      if (frameNumber > middleFrameNumber && frameNumber < frameCount) {
+        this._changePosition(0, JUMP_HEIGHT);
+      }
       if (frameNumber === frameCount) {
         this.actionType = this._prevActionType;
       }

@@ -110,6 +110,23 @@ export default class Scene {
     return y + height < this._canvas.height;
   }
 
+  // 1 2 3
+  // 4 5 6
+  // 7 8 9
+  getObjectPlace(a, b) {
+    const res = { x: null, y: null };
+
+    if (b.bottom < a.top) res.y = 'ABOVE';
+    else if (b.top > a.bottom) res.y = 'BELOW';
+    else res.y = 'MIDDLE';
+
+    if (b.right < a.left) res.x = 'LEFT_OF';
+    else if (b.left > a.right) res.x = 'RIGHT_OF';
+    else res.x = 'MIDDLE';
+
+    return res;
+  }
+
   /**
    * If object has collision with any static object returns true.
    * @param {IPoint} position - position of object which want to detect collisions
@@ -120,20 +137,67 @@ export default class Scene {
    */
   checkMoveCollisions(position: IPoint, object: IHitBox, xOffset: number, yOffset: number) {
     const a = {
-      hitBox: object,
-      position,
+      left: Number(position.x) + Number(object.from.x),
+      top: Number(position.y) + Number(object.from.y),
+      right: Number(position.x) + Number(object.to.x),
+      bottom: Number(position.y) + Number(object.to.y),
     };
 
-    return this._staticObjects.some(obj => {
-      return obj.hitBoxes.some((hitBox: IHitBox) => {
+    const newA = {
+      left: a.left + xOffset,
+      top: a.top + yOffset,
+      right: a.right + xOffset,
+      bottom: a.bottom + yOffset,
+    };
+
+    const intersectedObjects = [];
+    const canMove = {
+      up: Number.MAX_SAFE_INTEGER,
+      down: Number.MAX_SAFE_INTEGER,
+      left: Number.MAX_SAFE_INTEGER,
+      right: Number.MAX_SAFE_INTEGER,
+    };
+
+    for (const obj of this._staticObjects) {
+      let isIntersected = false;
+      for (const hitBox of obj.hitBoxes) {
         const b = {
-          hitBox,
-          position: obj.position,
+          left: Number(obj.position.x) + Number(hitBox.from.x),
+          top: Number(obj.position.y) + Number(hitBox.from.y),
+          right: Number(obj.position.x) + Number(hitBox.to.x),
+          bottom: Number(obj.position.y) + Number(hitBox.to.y),
         };
 
-        return this._detectCollision(a, b, xOffset, yOffset);
-      });
-    });
+        const relativePosition = this.getObjectPlace(newA, b);
+
+        if (relativePosition.x === 'MIDDLE' && relativePosition.y === 'MIDDLE') {
+          isIntersected = true;
+          const relativePositionBeforeShift = this.getObjectPlace(a, b);
+
+          if (relativePositionBeforeShift.x === 'LEFT_OF') {
+            canMove.left = Math.min(canMove.left, a.left - b.right - 1);
+          } else if (relativePositionBeforeShift.x === 'RIGHT_OF') {
+            canMove.right = Math.min(canMove.right, b.left - a.right - 1);
+          } else {
+            canMove.left = 0; canMove.right = 0;
+          }
+
+          if (relativePositionBeforeShift.y === 'ABOVE') {
+            canMove.up = Math.min(canMove.up, a.top - b.bottom - 1);
+          } else if (relativePositionBeforeShift.y === 'BELOW') {
+            canMove.down = Math.min(canMove.down, b.top - a.bottom - 1);
+          } else {
+            canMove.up = 0; canMove.down = 0;
+          }
+
+          break;
+        }
+      }
+      if (isIntersected) {
+        intersectedObjects.push(obj);
+      }
+    }
+    return canMove;
   }
 
   /**
@@ -162,13 +226,13 @@ export default class Scene {
 
   _render() {
     if (this._paused) return;
-
-    requestAnimationFrame(this._render.bind(this));
     this._ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
     this._renderBackground();
     this._renderObjects();
     this._renderHero();
     this._renderForeground();
+
+    if (!this._paused) requestAnimationFrame(this._render.bind(this));
   }
 
   _renderBackground() {
