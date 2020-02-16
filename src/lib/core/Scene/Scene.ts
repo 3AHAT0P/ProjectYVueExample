@@ -23,6 +23,8 @@ declare global {
   }
 }
 
+const SIZE_MULTIPLIER = 2;
+
 /**
  * @class Scene - The core of a game.
  */
@@ -35,6 +37,7 @@ export default class Scene {
   private _paused: boolean;
   private background: ILayerCache;
   private foreground: ILayerCache;
+  private zero: any;
 
   /**
    * @constructor Scene
@@ -48,6 +51,7 @@ export default class Scene {
     this._canvas.height = height || 500;
     element.append(this._canvas);
     this._ctx = this._canvas.getContext('2d');
+    this._ctx.imageSmoothingEnabled = false;
   }
 
   setBackground(background: ILayerCache) {
@@ -55,6 +59,9 @@ export default class Scene {
   }
   setForeground(foreground: ILayerCache) {
     this.foreground = foreground;
+  }
+  setZero(zero: any) {
+    this.zero = zero;
   }
   /**
    * Method to add a main Hero to a game
@@ -82,6 +89,8 @@ export default class Scene {
     // this value is the size of tiles from TileMap. Because place represent coords on the grid
     // for example - 1|2 means that real point is 1 * 16 | 2 * 16
     const defaultTileSize = 16;
+    // console.log(objects);
+    // debugger;
     for (const [place, renderedObject] of objects.entries()) {
       // eslint-disable-next-line no-continue
       if ((renderedObject as any).isVirtual) continue;
@@ -228,20 +237,43 @@ export default class Scene {
     if (this._paused) return;
     this._ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
     this._renderBackground();
+    this._renderZero();
     this._renderObjects();
     this._renderHero();
     this._renderForeground();
+
+    const cameraOffsetX = this._hero.position.x / (this._canvas.width * SIZE_MULTIPLIER);
+    const cameraOffsetY = this._hero.position.y / (this._canvas.height * SIZE_MULTIPLIER);
+
+    let translateX = -this._hero.position.x - this._canvas.width / 3 * cameraOffsetX; // - this._canvas.width / 3;
+    let translateY = -this._hero.position.y - this._canvas.height / 3 * cameraOffsetY; // - this._canvas.height / 4;
+
+    if (translateX < -this._canvas.width * (SIZE_MULTIPLIER - 1)) {
+      translateX = -this._canvas.width * (SIZE_MULTIPLIER - 1);
+    }
+    if (translateX > 0) translateX = 0;
+    if (translateY < -this._canvas.height * (SIZE_MULTIPLIER - 1)) {
+      translateY = -this._canvas.height * (SIZE_MULTIPLIER - 1);
+    }
+    if (translateY > 0) translateY = 0;
+
+    this._ctx.setTransform(1, 0, 0, 1, 0, 0);
+    this._ctx.translate(translateX, translateY);
 
     if (!this._paused) requestAnimationFrame(this._render.bind(this));
   }
 
   _renderBackground() {
     const { canvas, canvas: { width, height } } = this.background;
-    this._ctx.drawImage(canvas, 0, 0, width, height, 0, 0, width, height);
+    this._ctx.drawImage(canvas, 0, 0, width, height, 0, 0, width * SIZE_MULTIPLIER, height * SIZE_MULTIPLIER);
   }
   _renderForeground() {
     const { canvas, canvas: { width, height } } = this.foreground;
-    this._ctx.drawImage(canvas, 0, 0, width, height, 0, 0, width, height);
+    this._ctx.drawImage(canvas, 0, 0, width, height, 0, 0, width * SIZE_MULTIPLIER, height * SIZE_MULTIPLIER);
+  }
+  _renderZero() {
+    const { width, height } = this.zero;
+    this._ctx.drawImage(this.zero, 0, 0, width, height, 0, 0, width * SIZE_MULTIPLIER, height * SIZE_MULTIPLIER);
   }
 
   _renderObjects() {
@@ -262,10 +294,10 @@ export default class Scene {
       0,
       width,
       height,
-      x,
-      y,
-      width,
-      height,
+      x * SIZE_MULTIPLIER,
+      y * SIZE_MULTIPLIER,
+      width * SIZE_MULTIPLIER,
+      height * SIZE_MULTIPLIER,
     );
   }
   // TODO fix types
@@ -277,10 +309,10 @@ export default class Scene {
       0,
       width,
       height,
-      position.x,
-      position.y,
-      width,
-      height,
+      position.x * SIZE_MULTIPLIER,
+      position.y * SIZE_MULTIPLIER,
+      width * SIZE_MULTIPLIER,
+      height * SIZE_MULTIPLIER,
     );
   }
 

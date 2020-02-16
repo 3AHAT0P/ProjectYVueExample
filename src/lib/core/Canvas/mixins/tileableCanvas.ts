@@ -2,6 +2,7 @@ import Point from '@/lib/core/utils/classes/Point';
 import Tile from '@/lib/core/RenderedObject/Tile';
 import InteractiveObject from '@/lib/core/InteractiveObject/InteractiveObject';
 import buildEvent from '@/lib/core/utils/buildEvent';
+import GameObject, { IHitBox } from '@/lib/core/RenderedObject/GameObject/GameObject';
 
 import Canvas from '..';
 
@@ -112,6 +113,38 @@ const TileableCanvasMixin = (BaseClass = Canvas) => {
      */
     public getObjects(): Map<string, IRenderedObject> {
       return this._layers[ZERO_LAYER];
+    }
+
+    public getZeroLayer(): any {
+      const canvas = document.createElement('canvas');
+      canvas.width = this.width;
+      canvas.height = this.height;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // eslint-disable-next-line no-param-reassign
+      ctx.imageSmoothingEnabled = this._imageSmoothingEnabled;
+      // @ts-ignore
+      const sizeMultiplier = this.sizeMultiplier || 1;
+      for (const [place, renderedObject] of this._layers[ZERO_LAYER].entries()) {
+        // eslint-disable-next-line no-continue
+        if (renderedObject instanceof GameObject) continue;
+        const [x, y] = Point.fromReverseString(place).toArray();
+        const tileBoundingRect = renderedObject.sourceBoundingRect;
+        ctx.drawImage(
+          renderedObject.source,
+          tileBoundingRect.x,
+          tileBoundingRect.y,
+          tileBoundingRect.width,
+          tileBoundingRect.height,
+          x * this._tileSize.x,
+          y * this._tileSize.y,
+          // this._tileSize.x,
+          // this._tileSize.y,
+          tileBoundingRect.width * sizeMultiplier,
+          tileBoundingRect.height * sizeMultiplier,
+        );
+      }
+      return canvas;
     }
 
     [_onMouseMoveHandler](event: MouseEvent) {

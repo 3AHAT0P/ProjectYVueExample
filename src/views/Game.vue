@@ -46,6 +46,7 @@ export default class Game extends Vue {
     });
     const { width, height } = this.mainTileMap._el;
     const background = this.mainTileMap.getBackground();
+    const zero = this.mainTileMap.getZeroLayer();
     const foreground = this.mainTileMap.getForeground();
     const objects = this.mainTileMap.getObjects();
     const gameObjects: Map<string, GameObject> = new Map(
@@ -58,7 +59,7 @@ export default class Game extends Vue {
       mainSettings: {
         mainFlipbook: './sources/PNG/Knight/knight.png',
         hitBoxes: [{
-          id: 0, from: { x: 24, y: 56 }, to: { x: 72, y: 112 }, options: { color: 0 },
+          id: 0, from: { x: 24, y: 56 }, to: { x: 72, y: 109 }, options: { color: 0 },
         }],
         speed: 300,
       },
@@ -98,6 +99,7 @@ export default class Game extends Vue {
 
     this.scene.addHero(player);
     this.scene.setBackground(background);
+    this.scene.setZero(zero);
     this.scene.setForeground(foreground);
     this.scene.addObjects(gameObjects);
     this.scene.start();

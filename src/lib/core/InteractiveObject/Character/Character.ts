@@ -22,6 +22,7 @@ export default class Character {
   private readonly _actionHandlerHash: any;
   private _moving: boolean;
   private _jumping: boolean;
+  private _jumpDirection: string = 'UP';
   private _lastRenderTime: number;
   private _offscreenCanvas: HTMLCanvasElement;
   private _renderer: CanvasRenderingContext2D;
@@ -350,7 +351,9 @@ export default class Character {
     const offset = this._getOffset();
     if (this._moving && this._direction === 'RIGHT') this._changePosition(offset);
     if (this._moving && this._direction === 'LEFT') this._changePosition(-offset);
-    if (!this._jumping) this._changePosition(0, 4);
+    if (this._jumping && this._jumpDirection === 'UP') this._changePosition(0, -6);
+    if (this._jumping && this._jumpDirection === 'DOWN') this._changePosition(0, 6);
+    if (!this._jumping) this._changePosition(0, 6);
     this._lastRenderTime = Date.now();
 
     if (this.showHitBoxes) {
@@ -367,18 +370,18 @@ export default class Character {
         this.height,
       );
 
-      this.mainSettings.hitBoxes.forEach(hitBox => {
-        const {
-          from: { x: fx, y: fy },
-          to: { x: tx, y: ty },
-        } = hitBox;
-        const width = tx - fx;
-        const height = ty - fy;
+      // this.mainSettings.hitBoxes.forEach(hitBox => {
+      //   const {
+      //     from: { x: fx, y: fy },
+      //     to: { x: tx, y: ty },
+      //   } = hitBox;
+      //   const width = tx - fx;
+      //   const height = ty - fy;
 
-        this._renderer.beginPath();
-        this._renderer.rect(fx, fy, width, height);
-        this._renderer.stroke();
-      });
+      //   this._renderer.beginPath();
+      //   this._renderer.rect(fx, fy, width, height);
+      //   this._renderer.stroke();
+      // });
 
       return this._offscreenCanvas;
     }
@@ -516,11 +519,10 @@ export default class Character {
 
   _setOnChangeJumpFrame() {
     const onChangeHandler = (frameNumber: number, frameCount: number) => {
-      const JUMP_HEIGHT = 16 * 3;
       const middleFrameNumber = Math.ceil(frameCount / 2);
-      if (frameNumber > 1 && frameNumber < middleFrameNumber) this._changePosition(0, -JUMP_HEIGHT);
+      if (frameNumber > 1 && frameNumber < middleFrameNumber) this._jumpDirection = 'UP';
       if (frameNumber > middleFrameNumber && frameNumber < frameCount) {
-        this._changePosition(0, JUMP_HEIGHT);
+        this._jumpDirection = 'DOWN';
       }
       if (frameNumber === frameCount) {
         this.actionType = this._prevActionType;
