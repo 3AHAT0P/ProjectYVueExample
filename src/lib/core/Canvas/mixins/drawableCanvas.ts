@@ -11,7 +11,7 @@ import { TileableCanvas, isTileable, TileableCanvasOptions } from './tileableCan
 import {
   LAYER_INDEX,
   ZERO_LAYER,
-} from './tileableCanvas/buildLayers';
+} from './tileableCanvas/constants';
 
 const _onMouseEnterHandler = Symbol('_onMouseEnterHandler');
 const _onMouseLeaveHandler = Symbol('_onMouseLeaveHandler');

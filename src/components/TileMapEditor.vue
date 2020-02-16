@@ -83,7 +83,7 @@ import {
   ZERO_LAYER,
   FOREGROUND_LAYER,
   LAYER_INDEX,
-} from '@/lib/core/Canvas/mixins/tileableCanvas/buildLayers';
+} from '@/lib/core/Canvas/mixins/tileableCanvas/constants';
 
 import Point from '@/lib/core/utils/classes/Point';
 import Tile from '@/lib/core/RenderedObject/Tile';

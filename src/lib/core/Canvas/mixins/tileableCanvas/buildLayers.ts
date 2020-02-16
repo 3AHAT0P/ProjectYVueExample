@@ -1,12 +1,7 @@
 import PureCanvas from '@/lib/core/utils/classes/PureCanvas';
 import Point from '@/lib/core/utils/classes/Point';
 
-export type LAYER_INDEX = '-1' | '0' | '1' | '2';
-
-export const BACKGROUND_LAYER = '-1';
-export const ZERO_LAYER = '0';
-export const FOREGROUND_LAYER = '1';
-export const SYSTEM_UI_LAYER = '2';
+import { LAYER_INDEX } from './constants';
 
 export class LayerCache extends PureCanvas {
   private _isDirty: boolean = true;
@@ -23,9 +18,11 @@ export class Layer extends Map<string, IRenderedObject> {
 
   public get isDirty() { return this._cache.isDirty; }
 
-  private _render() {
+  private _render(conditionCallback?: (renderedObject: IRenderedObject) => boolean) {
     this._cache.clear();
     for (const [key, renderedObject] of this.entries()) {
+      // eslint-disable-next-line no-continue
+      if (conditionCallback && !conditionCallback(renderedObject)) continue;
       const [x, y] = this.parseKey(key);
       const tileBoundingRect = renderedObject.sourceBoundingRect;
       this._cache.drawImage(
@@ -95,6 +92,11 @@ export class Layer extends Map<string, IRenderedObject> {
 
   public remove(x: number, y: number): boolean {
     return this.delete(this.buildKey(x, y));
+  }
+
+  public renderWithCondition(conditionCallback: (renderedObject: IRenderedObject) => boolean) {
+    this._render(conditionCallback);
+    this.validateCache();
   }
 
   public getRenderedObject(): IRenderedObject {

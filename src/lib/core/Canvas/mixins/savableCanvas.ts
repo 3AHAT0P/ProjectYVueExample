@@ -12,7 +12,7 @@ import {
   BACKGROUND_LAYER,
   ZERO_LAYER,
   FOREGROUND_LAYER,
-} from './tileableCanvas/buildLayers';
+} from './tileableCanvas/constants';
 
 const CLASS_NAME = Symbol.for('SavableCanvas');
 export const isSavable = (Class: any) => checkInheritanceSequance(Class, CLASS_NAME);

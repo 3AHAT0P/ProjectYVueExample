@@ -39,6 +39,8 @@ export default class Canvas extends BaseClass {
     return <T>instance;
   }
 
+  private _renderIsPlanned: boolean = false;
+
   public get normalizedWidth() { return this.width; }
   public get normalizedHeight() { return this.height; }
 
@@ -47,6 +49,8 @@ export default class Canvas extends BaseClass {
   }
 
   protected _renderInNextFrame() {
+    if (this._renderIsPlanned) return;
+    this._renderIsPlanned = true;
     nextFrame(this._render);
   }
 
@@ -54,6 +58,11 @@ export default class Canvas extends BaseClass {
     this._applyImageSmoothing();
     this.clear();
     this.emit(':render', { ctx: this.ctx });
+    this._afterRender();
+  }
+
+  protected _afterRender() {
+    this._renderIsPlanned = false;
   }
 
   protected _applyOptions(options: CanvasOptions): boolean {
@@ -70,7 +79,8 @@ export default class Canvas extends BaseClass {
   constructor() {
     super();
 
-    this._render = throttle(this._render.bind(this), 16);
+    // this._render = throttle(this._render.bind(this), 16);
+    this._render = this._render.bind(this);
     // this._renderInNextFrame = this._renderInNextFrame.bind(this);
   }
 

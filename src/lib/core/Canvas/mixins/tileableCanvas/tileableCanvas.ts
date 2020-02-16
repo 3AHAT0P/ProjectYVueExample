@@ -1,21 +1,31 @@
 import InteractiveObject from '@/lib/core/InteractiveObject/InteractiveObject';
+import GameObject from '@/lib/core/RenderedObject/GameObject/GameObject';
 
 import { updateInheritanceSequance, checkInheritanceSequance, copyArray } from '@/lib/core/utils';
 
 import Canvas, { CanvasOptions, isCanvas } from '../../Canvas';
 
 import {
-  buildLayers,
-  Layer,
-  GridLayer,
   LAYER_INDEX,
   BACKGROUND_LAYER,
   ZERO_LAYER,
   FOREGROUND_LAYER,
   SYSTEM_UI_LAYER,
+} from './constants';
+
+import {
+  buildLayers,
+  Layer,
+  GridLayer,
 } from './buildLayers';
 
 export type TileableCanvasOptions = CanvasOptions & { cellSize?: { x: number, y: number }; };
+
+export type RenderedLayers = {
+  [BACKGROUND_LAYER]: IRenderedObject;
+  [ZERO_LAYER]: IRenderedObject;
+  [FOREGROUND_LAYER]: IRenderedObject;
+};
 
 export interface ITileableCanvas {
   readonly sizeInTiles: { x: number, y: number };
@@ -23,12 +33,14 @@ export interface ITileableCanvas {
   readonly layers: Hash<Layer>;
   readonly cellSize: { x: number, y: number };
   readonly normalizedCellSize: { x: number, y: number };
+  readonly interactiveObjects: InteractiveObject[];
   invalidateCache(level: LAYER_INDEX | 'ALL'): void;
   updateVisibleLayers(levels: LAYER_INDEX[]): void;
   clearLayer(level: LAYER_INDEX | 'ALL'): void;
   updateCurrentTiles(tiles: Map<string, IRenderedObject>): Promise<void>;
   resize(width: number, height: number): void;
   updateTilesCount(width: number, height: number): void;
+  getNonInteractiveLayers(): RenderedLayers;
 }
 
 export interface ITileableCanvasProtected {
@@ -88,6 +100,7 @@ const TileableCanvasMixin = <T = any>(BaseClass: Constructor = Canvas): Construc
         y: this.normalizedHeight / this._rowsNumber,
       };
     }
+    public get interactiveObjects() { return this._interactiveObjects; }
 
     private _calcGrid() {
       this._columnsNumber = Math.trunc(this.width / this.cellSize.x);
@@ -157,7 +170,7 @@ const TileableCanvasMixin = <T = any>(BaseClass: Constructor = Canvas): Construc
     }
 
     // @TODO That time might be used for checking time between renders
-    protected _render(time: number, clearRender = false) {
+    protected _render(time: number, clearRender = false): void {
       // this._applyImageSmoothing();
       if (!this._visibleLayersChanged) {
         let reallyNeedRender = false;
@@ -167,12 +180,13 @@ const TileableCanvasMixin = <T = any>(BaseClass: Constructor = Canvas): Construc
             break;
           }
         }
-        if (!reallyNeedRender) return;
+        if (!reallyNeedRender) return this._afterRender();
       }
       this.clear();
       this._drawLayers();
       this.emit(':render', { ctx: this.ctx });
       if (!clearRender) this._drawGrid();
+      return this._afterRender();
     }
 
     protected _transformEventCoordsToGridCoords(eventX: number, eventY: number): [number, number] {
@@ -239,6 +253,17 @@ const TileableCanvasMixin = <T = any>(BaseClass: Constructor = Canvas): Construc
 
     public updateTilesCount(width: number, height: number) {
       this.resize(width * this.cellSize.x, height * this.cellSize.y);
+    }
+
+    public getNonInteractiveLayers(): RenderedLayers {
+      this._layers[ZERO_LAYER].renderWithCondition(
+        (renderedObject: IRenderedObject) => !(renderedObject instanceof GameObject),
+      );
+      return {
+        [BACKGROUND_LAYER]: this._layers[BACKGROUND_LAYER].getRenderedObject(),
+        [ZERO_LAYER]: this._layers[ZERO_LAYER].getRenderedObject(),
+        [FOREGROUND_LAYER]: this._layers[FOREGROUND_LAYER].getRenderedObject(),
+      };
     }
   }
 

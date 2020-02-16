@@ -3,7 +3,7 @@ import Tile from '@/lib/core/RenderedObject/Tile';
 import { updateInheritanceSequance, checkInheritanceSequance } from '@/lib/core/utils';
 
 import { TileableCanvasOptions, TileableCanvas, isTileable } from './tileableCanvas/tileableCanvas';
-import { SYSTEM_UI_LAYER } from './tileableCanvas/buildLayers';
+import { SYSTEM_UI_LAYER } from './tileableCanvas/constants';
 
 export type HoverableTileCanvasOptions = TileableCanvasOptions;
 
