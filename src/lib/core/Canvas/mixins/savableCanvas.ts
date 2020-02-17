@@ -1,5 +1,6 @@
 import Point from '@/lib/core/utils/classes/Point';
 import InteractiveObject from '@/lib/core/InteractiveObject/InteractiveObject';
+import InteractiveObjectFactory from '@/lib/core/InteractiveObject/InteractiveObjectFactory';
 
 import GameObject from '@/lib/core/RenderedObject/GameObject/GameObject';
 import Tile from '@/lib/core/RenderedObject/Tile';
@@ -57,7 +58,17 @@ const SavableCanvasMixin = <T = any>(BaseClass: Constructor = TileableCanvas): C
           }
         }
       }
-      const iObject = new InteractiveObject({ gameObject, coordTiles: coords });
+      const iObject = InteractiveObjectFactory.create(
+        gameObject.type,
+        {
+          gameObject,
+          coordTiles: coords,
+          position: {
+            x: coords[0].x * this.normalizedCellSize.x,
+            y: coords[0].y * this.normalizedCellSize.y,
+          },
+        },
+      );
       this._appendInteractiveObject(iObject);
     }
 

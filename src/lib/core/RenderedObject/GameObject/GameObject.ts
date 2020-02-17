@@ -1,15 +1,18 @@
 import PureCanvas from '@/lib/core/utils/classes/PureCanvas';
+import InteractiveObjectType from '@/lib/core/InteractiveObject/InteractiveObjectType';
 
 import RenderedObject, { IRenderedObjectOptions, IRenderedObjectMeta } from '../RenderedObject';
 
 export interface IGameObjectOptions extends IRenderedObjectOptions {
   name?: string;
+  type?: InteractiveObjectType;
   hitBoxes?: IHitBox[];
   version?: string;
 }
 
 export interface IGameObjectMeta extends IRenderedObjectMeta {
   name: string;
+  type: InteractiveObjectType;
   hitBoxes: IHitBox[];
   version: string;
 }
@@ -37,10 +40,13 @@ export default class GameObject extends RenderedObject implements IRenderedObjec
   private _source: PureCanvas = new PureCanvas();
 
   private _name: string = null;
+  private _type: InteractiveObjectType = InteractiveObjectType.IMPASSABLE_BLOCK;
   private _hitBoxes: IHitBox[] = [];
 
   public get name() { return this._name; }
   public set name(value: string) { this._name = value; }
+
+  public get type() { return this._type; }
 
   public get hitBoxes(): IHitBox[] { return this._hitBoxes; }
 
@@ -65,6 +71,7 @@ export default class GameObject extends RenderedObject implements IRenderedObjec
       sourceURL: this.sourceURL,
       sourceBoundingRect: this.sourceBoundingRect,
       name: this.name,
+      type: this.type,
       hitBoxes: this.hitBoxes,
       version: GameObject.version,
     };
@@ -104,6 +111,7 @@ export default class GameObject extends RenderedObject implements IRenderedObjec
     sourceURL,
     sourceBoundingRect,
     name,
+    type,
     hitBoxes,
     version,
   }: IGameObjectMeta) {
@@ -111,6 +119,7 @@ export default class GameObject extends RenderedObject implements IRenderedObjec
 
     this._id = id;
     this._name = name;
+    this._type = type;
     this._source.resize(sourceBoundingRect.width, sourceBoundingRect.height);
     await this._source.fromDataURL(sourceURL, false);
     this._hitBoxes = hitBoxes;

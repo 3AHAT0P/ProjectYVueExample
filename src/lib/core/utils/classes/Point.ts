@@ -33,12 +33,14 @@ export default class Point implements IPoint {
   private _y: number = 0;
 
   public get x() { return this._x; }
-  public set x(value: number) { throw new Error('It\'s property read only!'); }
-
   public get y() { return this._y; }
-  public set y(value: number) { throw new Error('It\'s property read only!'); }
 
   constructor(x: number, y: number) {
+    this._x = x;
+    this._y = y;
+  }
+
+  public updateCoordinates(x: number, y: number) {
     this._x = x;
     this._y = y;
   }

@@ -1,34 +1,160 @@
+import Canvas from '@/lib/core/Canvas/Canvas';
+import {
+  BACKGROUND_LAYER,
+  ZERO_LAYER,
+  FOREGROUND_LAYER,
+} from '@/lib/core/Canvas/mixins/tileableCanvas/constants';
+import { RenderedLayers } from '@/lib/core/Canvas/mixins/tileableCanvas/tileableCanvas';
 import Character from '@/lib/core/InteractiveObject/Character/Character';
 import InteractiveObject from '@/lib/core/InteractiveObject/InteractiveObject';
 import Point from '@/lib/core/utils/classes/Point';
 import GameObject, { IHitBox } from '@/lib/core/RenderedObject/GameObject/GameObject';
+import TileMap from '@/lib/core/TileMap/TileMap';
+import { nextFrame } from '@/lib/core/utils/delayers';
 
-declare global {
-  interface Scene {
-    addHero(arg0: Character): void,
-    addObject(object: any, type: string): void
-    start(): void,
-    pause(): void,
-    checkBeyondPosition(x: number, y: number, width: number, height: number): boolean,
-    checkMoveCollisions(position: IPoint, object: IHitBox, xOffset: number, yOffset: number): boolean,
-    checkDamageCollisions(position: IPoint, object: IHitBox): boolean,
-    setBackground(background: ILayerCache): void,
-    setForeground(foreground: ILayerCache): void,
-    addObjects(objects: Map<string, IRenderedObject>): void,
-  }
+const _onKeyDownHandler = Symbol('_onKeyDownHandler');
+const _onKeyUpHandler = Symbol('_onKeyUpHandler');
 
-  interface ICollisionArgument {
-    hitBox: IHitBox,
-    position: IPoint,
-  }
+type LAYER_INDEX = '-1' | '0' | '1';
+
+export interface IScene {
+  addHero(arg0: Character): void,
+  addObject(object: any, type: string): void
+  start(): void,
+  pause(): void,
+  checkBeyondPosition(x: number, y: number, width: number, height: number): boolean,
+  checkMoveCollisions(position: IPoint, object: IHitBox, xOffset: number, yOffset: number): boolean,
+  checkDamageCollisions(position: IPoint, object: IHitBox): boolean,
+  setBackground(background: IRenderedObject): void,
+  setForeground(foreground: IRenderedObject): void,
+  addObjects(objects: Map<string, IRenderedObject>): void,
 }
 
-const SIZE_MULTIPLIER = 2;
+interface ICollisionArgument {
+  hitBox: IHitBox,
+  position: IPoint,
+}
+
+const SIZE_MULTIPLIER = 1;
+
+enum GameState {
+  RUNNING,
+  PAUSED,
+}
+
+const BROWSER_FRAME_RATE = 60;
+
+export default class Scene extends Canvas {
+  private _tileMap: TileMap = null;
+  private _layers: RenderedLayers = {
+    [BACKGROUND_LAYER]: null,
+    [ZERO_LAYER]: null,
+    [FOREGROUND_LAYER]: null,
+  };
+
+  private _interactiveObjects: InteractiveObject[] = [];
+
+  private _state: GameState = GameState.RUNNING;
+
+  private _frameRate: number = BROWSER_FRAME_RATE;
+  private _currentFrame: number = 0;
+
+  private [_onKeyDownHandler](event: KeyboardEvent) {
+
+  }
+
+  private [_onKeyUpHandler](event: KeyboardEvent) {
+
+  }
+
+  private _renderLayer(layerIndex: LAYER_INDEX) {
+    const layer = this._layers[layerIndex];
+    this.drawImage(
+      layer.source,
+      layer.sourceBoundingRect.x, layer.sourceBoundingRect.y,
+      layer.sourceBoundingRect.width, layer.sourceBoundingRect.height,
+      0, 0,
+      this.width * SIZE_MULTIPLIER, this.height * SIZE_MULTIPLIER,
+    );
+  }
+
+  private _renderInteractiveObjects() {
+    for (const interactiveObject of this._interactiveObjects) {
+      this._renderInteractiveObject(interactiveObject);
+    }
+  }
+
+  private _renderInteractiveObject(object: InteractiveObject) {
+    const { position, renderedObject: { source, sourceBoundingRect } } = object;
+    this.drawImage(
+      source,
+      sourceBoundingRect.x, sourceBoundingRect.y,
+      sourceBoundingRect.width, sourceBoundingRect.height,
+      position.x * SIZE_MULTIPLIER, position.y * SIZE_MULTIPLIER,
+      sourceBoundingRect.width * SIZE_MULTIPLIER, sourceBoundingRect.height * SIZE_MULTIPLIER,
+    );
+  }
+
+  private _tick(time: number) {
+    this._currentFrame += 1;
+    if (this._currentFrame >= BROWSER_FRAME_RATE / this._frameRate) {
+      this._render(time);
+      this._currentFrame = 0;
+    }
+
+    if (this._state !== GameState.RUNNING) return;
+    nextFrame(this._tick);
+  }
+
+  protected _render(time: number) {
+    this._applyImageSmoothing();
+    this.clear();
+    this._renderLayer(BACKGROUND_LAYER);
+    this._renderLayer(ZERO_LAYER);
+    this._renderInteractiveObjects();
+    this._renderLayer(FOREGROUND_LAYER);
+    this._afterRender();
+  }
+
+  protected _changeState(state: GameState) {
+    this._state = state;
+  }
+
+  protected async _initListeners() {
+    window.addEventListener('keydown', this[_onKeyDownHandler].bind(this), { passive: true });
+    window.addEventListener('keyup', this[_onKeyUpHandler].bind(this), { passive: true });
+  }
+
+  constructor() {
+    super();
+
+    this._tick = this._tick.bind(this);
+  }
+
+  public updateTileMap(tileMap: TileMap) {
+    this._tileMap = tileMap;
+
+    this._layers = this._tileMap.getNonInteractiveLayers();
+
+    this.resize(this._tileMap.width, this._tileMap.height);
+
+    this._interactiveObjects = this._tileMap.interactiveObjects.slice();
+  }
+
+  public play() {
+    this._changeState(GameState.RUNNING);
+    nextFrame(this._tick);
+  }
+
+  public pause() {
+    this._changeState(GameState.PAUSED);
+  }
+}
 
 /**
  * @class Scene - The core of a game.
  */
-export default class Scene {
+class XScene {
   private _staticObjects: InteractiveObject[] = [];
   private _dynamicObjects: any[] = [];
   private _canvas: HTMLCanvasElement;

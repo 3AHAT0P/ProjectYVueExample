@@ -11,13 +11,15 @@ interface InteractiveObjectOptions {
 export default class InteractiveObject {
   private _gameObject: GameObject = null;
   private _coordTiles: Point[] = [];
+  private _position: Point = new Point(0, 0);
 
-  public position: { x: number; y: number };
+  public get renderedObject(): IRenderedObject { return this._gameObject; }
+  public get position() { return this._position.toObject(); }
 
   constructor(options: InteractiveObjectOptions) {
     if (options.gameObject) this._gameObject = options.gameObject;
     if (options.coordTiles) this._coordTiles = options.coordTiles;
-    if (options.position) this.position = options.position;
+    if (options.position) this._position.updateCoordinates(options.position.x, options.position.y);
   }
 
   checkTile(coord: Point): boolean {
@@ -51,6 +53,6 @@ export default class InteractiveObject {
   }
 
   setPosition(x: number, y: number) {
-    this.position = { x, y };
+    this._position.updateCoordinates(x, y);
   }
 }
