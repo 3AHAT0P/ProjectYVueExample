@@ -4,13 +4,13 @@ export interface IRenderedObjectOptions {
   id?: string;
   source?: CanvasImageSource;
   sourceURL?: string;
-  sourceBoundingRect?: ISourceBoundingRect;
+  sourceBoundingRect?: IBoundingRect;
 }
 
 export interface IRenderedObjectMeta extends IRenderedObjectOptions {
   id: string;
   sourceURL: string;
-  sourceBoundingRect: ISourceBoundingRect;
+  sourceBoundingRect: IBoundingRect;
 }
 
 export default abstract class RenderedObject implements IRenderedObject {
@@ -27,7 +27,7 @@ export default abstract class RenderedObject implements IRenderedObject {
 
   public abstract get source(): CanvasImageSource;
   public abstract get sourceURL(): string;
-  public abstract get sourceBoundingRect(): ISourceBoundingRect;
+  public abstract get sourceBoundingRect(): IBoundingRect;
 
   public get meta(): IRenderedObjectMeta {
     return {

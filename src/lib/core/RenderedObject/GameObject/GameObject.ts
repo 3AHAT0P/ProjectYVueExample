@@ -53,7 +53,7 @@ export default class GameObject extends RenderedObject implements IRenderedObjec
   public get source(): CanvasImageSource { return this._source.canvas; }
   public get sourceURL(): string { return this._source.toDataURL('image/png', 1); }
 
-  public get sourceBoundingRect(): ISourceBoundingRect {
+  public get sourceBoundingRect(): IBoundingRect {
     return {
       x: 0,
       y: 0,

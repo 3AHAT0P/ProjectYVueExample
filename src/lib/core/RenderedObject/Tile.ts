@@ -17,7 +17,7 @@ export default class Tile extends RenderedObject implements IRenderedObject {
 
   private _source: CanvasImageSource = null;
   private _sourceURL: string = null;
-  private _sourceBoundingRect: ISourceBoundingRect = {
+  private _sourceBoundingRect: IBoundingRect = {
     x: 0,
     y: 0,
     width: 0,

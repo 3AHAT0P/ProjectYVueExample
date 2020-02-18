@@ -1,5 +1,5 @@
 declare global {
-  interface ISourceBoundingRect {
+  interface IBoundingRect {
     x: number;
     y: number;
     width: number;

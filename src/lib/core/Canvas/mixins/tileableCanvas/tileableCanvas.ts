@@ -19,7 +19,7 @@ import {
   GridLayer,
 } from './buildLayers';
 
-export type TileableCanvasOptions = CanvasOptions & { cellSize?: { x: number, y: number }; };
+export type TileableCanvasOptions = CanvasOptions & { cellSize?: IPoint; };
 
 export type RenderedLayers = {
   [BACKGROUND_LAYER]: IRenderedObject;
@@ -28,11 +28,11 @@ export type RenderedLayers = {
 };
 
 export interface ITileableCanvas {
-  readonly sizeInTiles: { x: number, y: number };
+  readonly sizeInTiles: IPoint;
   readonly tiles: Map<string, IRenderedObject>;
   readonly layers: Hash<Layer>;
-  readonly cellSize: { x: number, y: number };
-  readonly normalizedCellSize: { x: number, y: number };
+  readonly cellSize: IPoint;
+  readonly normalizedCellSize: IPoint;
   readonly interactiveObjects: InteractiveObject[];
   invalidateCache(level: LAYER_INDEX | 'ALL'): void;
   updateVisibleLayers(levels: LAYER_INDEX[]): void;

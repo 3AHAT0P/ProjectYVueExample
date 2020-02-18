@@ -134,7 +134,7 @@ export default class GameObjectCanvas extends BaseClass {
     ctx.restore();
   }
 
-  private _renderRenderedObject(renderedObject: IRenderedObject, selfBoundingRect: ISourceBoundingRect) {
+  private _renderRenderedObject(renderedObject: IRenderedObject, selfBoundingRect: IBoundingRect) {
     const boundingRect = renderedObject.sourceBoundingRect;
     this.ctx.drawImage(
       renderedObject.source,
