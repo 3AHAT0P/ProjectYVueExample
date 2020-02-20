@@ -11,7 +11,6 @@ interface IFlipbookOptions {
 
 declare global {
   interface IFlipbook {
-    create(sprites: string[], options?: IFlipbookOptions): Promise<IFlipbook>,
     init(): void,
     load(): void,
     start(): void,
