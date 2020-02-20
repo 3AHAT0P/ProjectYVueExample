@@ -159,19 +159,19 @@ export default class Scene extends Canvas {
     this._changeState(GameState.PAUSED);
   }
 
-  inSceneBound(object: InteractiveObject) {
-    const boundingRect = object.boundingRect;
+  public inSceneBound(object: InteractiveObject) {
+    const hitBoxes = object.hitBoxes;
 
-    return boundingRect.x <= 0
-        && boundingRect.x + boundingRect.width > this.width
-        && boundingRect.y < 0
-        && boundingRect.y + boundingRect.height < this.height;
+    for (const hitBox of hitBoxes) {
+      if (hitBox.left < 0 || hitBox.right > this.width || hitBox.top < 0 || hitBox.bottom > this.height) return false;
+    }
+    return true;
   }
 
   /**
    * If object has collision with any static object returns true.
    */
-  checkMoveCollisions(interactiveObject: InteractiveObject, offset: IPoint): IDistanceToObject {
+  public checkMoveCollisions(interactiveObject: InteractiveObject, offset: IPoint): IDistanceToObject {
     const hitBoxes = interactiveObject.hitBoxes.map((edges) => [edges, {
       left: edges.left + offset.x,
       top: edges.top + offset.y,

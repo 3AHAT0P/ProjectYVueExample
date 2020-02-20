@@ -1,345 +1,210 @@
-import Flipbook from '../../RenderedObject/Flipbook';
-import Sprite from '../../RenderedObject/Sprite';
+import Flipbook from '@/lib/core/RenderedObject/Flipbook';
+import Sprite from '@/lib/core/RenderedObject/Sprite';
+
+import InteractiveObject from '../InteractiveObject';
 
 const ERROR_HELP_TEXT = 'Use Character.create method to create character with a set of sprites';
-declare global {
-  interface Character {
-// TODO fill Character interface and refactor
+
+interface ICollisionDetectorDelegate {
+  inSceneBound(object: InteractiveObject): boolean;
+  checkMoveCollisions(interactiveObject: InteractiveObject, offset: IPoint): IDistanceToObject;
+}
+
+type boolOrCallbackToBool = boolean | ((options: any) => boolean);
+
+class NonDeterminedStateMachine {
+  private _state: string = null;
+  private _availableStates: Set<string> = new Set();
+  private _availableTransitions: Map<string, Hash<boolOrCallbackToBool>> = new Map();
+  private _stateHistory: string[] = [];
+  private _historyLimit = 10;
+
+  private _addToHistory(state: string) {
+    this._stateHistory.push(state);
+    if (this._stateHistory.length > this._historyLimit) this._stateHistory.shift();
+  }
+
+  constructor(states: Set<string>, transitions: Map<string, Hash<boolOrCallbackToBool>>) {
+    this._availableStates = states;
+    this._availableTransitions = transitions;
+  }
+
+  public getState(offset: number = 0): string {
+    return this._stateHistory[this._stateHistory.length - 1 + offset];
+  }
+
+  public getTransition(prevState: string, nextState: string): boolOrCallbackToBool {
+    return this._availableTransitions.get(prevState)[nextState];
+  }
+
+  public makeTransition(nextState: string, options?: any): boolean {
+    const canTransition = this.getTransition(this._state, nextState);
+    if (canTransition instanceof Function) {
+      if (canTransition(options)) {
+        this._addToHistory(this._state);
+        this._state = nextState;
+        return true;
+      }
+    } else if (canTransition) {
+      this._addToHistory(this._state);
+      this._state = nextState;
+      return true;
+    }
+    return false;
   }
 }
 
-export default class Character {
-  private _coreElement: Scene = null;
+const transitions = {
+  IDLE: {
+    MOVE: true,
+    JUMP: true,
+    FALL: true,
+    ATTACK: true,
+  },
+  MOVE: {
+    IDLE: true,
+    JUMP: true,
+    FALL: true,
+    ATTACK: true,
+  },
+  JUMP: {
+    IDLE: true,
+    FALL: true,
+    ATTACK: true,
+  },
+  FALL: {
+    IDLE: true,
+    ATTACK: true,
+  },
+  ATTACK: {
+    IDLE: true,
+    MOVE: true,
+  },
+};
 
-  private _prevActionType = 'STOP';
-  private _currentActionType = 'STOP';
-  private _direction = 'RIGHT';
-  private _hooks: IHooks = {
-    onStop: null,
-    onMove: null,
-    onDamage: null,
-  };
-  private readonly _actionHandlerHash: any;
-  private _moving: boolean;
-  private _jumping: boolean;
-  private _jumpDirection: string = 'UP';
-  private _lastRenderTime: number;
-  private _offscreenCanvas: HTMLCanvasElement;
-  private _renderer: CanvasRenderingContext2D;
+const controls = {
+  ArrowRight: ['MOVE', 'RIGHT'],
+  ArrowLeft: ['MOVE', 'LEFT'],
+  KeyD: ['MOVE', 'RIGHT'],
+  KeyA: ['MOVE', 'LEFT'],
+  ArrowUp: ['JUMP', null],
+  KeyW: ['JUMP', null],
+  Space: ['ATTACK', null],
+};
 
-  public showHitBoxes: boolean;
-  actionType: string;
+type Direction = 'LEFT' | 'RIGHT';
 
-  flipbook: Flipbook = null;
-  mainSettings: IMainSettings = {
-    mainFlipbook: null,
-    mainRightFlipbook: null,
-    mainLeftFlipbook: null,
-    hitBoxes: [{
-      id: null,
-      from: null,
-      to: null,
-      options: null,
-    }],
-    /**
-     * The function should return a boolean value which indicates can a Character move or not.
-     *
-     * @callback checkPosition
-     * @returns {boolean}
-     */
-    checkPosition: null,
-    speed: null,
-  };
+const _onKeyDownHandler = Symbol('_onKeyDownHandler');
+const _onKeyUpHandler = Symbol('_onKeyUpHandler');
 
-  moveSettings: IMoveSettings = {
-    moveRightFlipbook: null,
-    moveLeftFlipbook: null,
-    moveRightCode: 'ArrowRight',
-    moveLeftCode: 'ArrowLeft',
-    alternativeMoveRightCode: 'KeyD',
-    alternativeMoveLeftCode: 'KeyA',
-  };
+const DEFAULT_CELL_SIZE = 16;
 
-  jumpSettings: IJumpSettings = {
-    jumpRightFlipbook: null,
-    jumpLeftFlipbook: null,
-    jumpCode: 'ArrowUp',
-    alternativeJumpCode: 'KeyW',
-  };
+const MOVING_SPEED = DEFAULT_CELL_SIZE / 2; // Pixels per Second
+const JUMPING_SPEED = DEFAULT_CELL_SIZE / 4; // Pixels per Second
+const FALLING_SPEED = DEFAULT_CELL_SIZE / 4; // Pixels per Second
 
-  attackSettings: IAttackSettings = {
-    attackRightFlipbook: null,
-    attackLeftFlipbook: null,
-    attackCode: 'Space',
-  };
+export default class Character extends InteractiveObject {
+  private _collisionDetector: ICollisionDetectorDelegate = null;
+  private _stateMachine: NonDeterminedStateMachine = null;
 
-  position = {
-    x: 0,
-    y: 0,
-  };
+  private _direction: Direction = 'RIGHT';
+  private _timeOfLastRender: number = null;
 
-  /**
-   * @constructs The main method to create a character
-   * @param {Scene} coreElement - canvas on which Character will be rendered
-   * @param {Object} position - initial Character position
-   * @param {number} position.x - canvas coordinates
-   * @param {number} position.y - canvas coordinates
-   * @param {Object} mainSettings - main Character settings
-   * @param {string | string[]} mainSettings.mainFlipbook - url or array of url
-   * @param {checkPosition} mainSettings.checkPosition - function to check any collisions and possibility to move.
-   * @param {number} mainSettings.speed - speed of a Character in px per second
-   * @param {Array} mainSettings.hitboxes - hitboxes of character
-   * @param {Object} moveSettings - settings for move action
-   * @param {string[]} moveSettings.moveFlipbook - array of url
-   * @param {string} moveSettings.moveRightCode - main right move action code
-   * @param {string} moveSettings.moveLeftCode - main left move action code
-   * @param {string} moveSettings.alternativeMoveRightCode - alternative right move action code
-   * @param {string} moveSettings.alternativeMoveLeftCode - alternative left move action code
-   * @param {Object} jumpSettings - settings for jump action
-   * @param {string[]} jumpSettings.jumpFlipbook - array of url
-   * @param {string} jumpSettings.jumpCode - main jump action code
-   * @param {string} jumpSettings.alternativeJumpCode - alternative jump action code
-   * @param {Object} attackSettings - settings for attack actions
-   * @param {string[]} attackSettings.attackFlipbook - array of url
-   * @param {string} attackSettings.attackCode - main attack action code
-   * @returns {Promise<Character>}
-   */
-  static async create({
-    coreElement,
-    position,
-    mainSettings,
-    moveSettings,
-    jumpSettings,
-    attackSettings,
-  }: ICharacterCreate) {
-    const { moveFlipbook, moveFlipbookMeta, ...restMoveSettings } = moveSettings;
-    const { jumpFlipbook, jumpFlipbookMeta } = jumpSettings;
-    const { attackFlipbook, attackFlipbookMeta } = attackSettings;
+  private _currentFlipbook: Flipbook = null;
+  private _flipbookMap: Map<string, Flipbook> = null;
+  private _controlMap: Map<string, [string, Direction]> = null;
+  private _heldControlMap: Map<string, boolean> = null;
 
-    const characterSettings: ICharacterConstructor = {
-      coreElement,
-      position,
-      mainSettings: {
-        mainRightFlipbook: null,
-        mainLeftFlipbook: null,
-        mainFlipbook: null,
-        checkPosition(): boolean {
-          return true;
-        },
-        speed: mainSettings.speed,
-        hitBoxes: mainSettings.hitBoxes,
-      },
-      moveSettings: {
-        ...restMoveSettings,
-        moveRightFlipbook: null,
-        moveLeftFlipbook: null,
-      },
-      jumpSettings: {
-        ...jumpSettings,
-        jumpLeftFlipbook: null,
-        jumpRightFlipbook: null,
-      },
-      attackSettings: {
-        ...attackSettings,
-        attackLeftFlipbook: null,
-        attackRightFlipbook: null,
-      },
+  // @TODO: We do it wrong!
+  private _getShift(): IPoint {
+    const shift = {
+      x: 0,
+      y: 0,
     };
-    if (typeof mainSettings.mainFlipbook === 'string') {
-      characterSettings.mainSettings.mainRightFlipbook = await Flipbook.create(
-        [mainSettings.mainFlipbook],
-      );
-    }
-    if (typeof mainSettings.mainFlipbook === 'string') {
-      characterSettings.mainSettings.mainLeftFlipbook = await Flipbook.create(
-        [mainSettings.mainFlipbook], { mirror: true },
-      );
-    }
-    if (mainSettings.mainFlipbook instanceof Array) {
-      characterSettings.mainSettings.mainRightFlipbook = await Flipbook.create(mainSettings.mainFlipbook);
-    }
-    if (mainSettings.mainFlipbook instanceof Array) {
-      characterSettings.mainSettings.mainLeftFlipbook = await Flipbook.create(
-        mainSettings.mainFlipbook, { mirror: true },
-      );
-    }
-    if (moveFlipbook instanceof Array) {
-      characterSettings.moveSettings.moveRightFlipbook = await Flipbook.create(moveFlipbook, moveFlipbookMeta);
-      characterSettings.moveSettings.moveLeftFlipbook = await Flipbook.create(moveFlipbook, {
-        ...moveFlipbookMeta,
-        mirror: true,
-      });
-    }
-    if (jumpFlipbook instanceof Array) {
-      characterSettings.jumpSettings.jumpRightFlipbook = await Flipbook.create(jumpFlipbook, jumpFlipbookMeta);
-      characterSettings.jumpSettings.jumpLeftFlipbook = await Flipbook.create(jumpFlipbook, {
-        ...jumpFlipbookMeta,
-        mirror: true,
-      });
-    }
-    if (attackFlipbook instanceof Array) {
-      characterSettings.attackSettings.attackRightFlipbook = await Flipbook.create(attackFlipbook, attackFlipbookMeta);
-      characterSettings.attackSettings.attackLeftFlipbook = await Flipbook.create(attackFlipbook, {
-        ...attackFlipbookMeta,
-        mirror: true,
-      });
-    }
+    if (this._heldControlMap.get('ArrowRight') || this._heldControlMap.get('KeyD')) shift.x = 1;
+    if (this._heldControlMap.get('ArrowLeft') || this._heldControlMap.get('KeyA')) shift.x = -1;
+    if (this._heldControlMap.get('ArrowUp') || this._heldControlMap.get('KeyW')) shift.y = -1;
+    if (this._stateMachine.getState() === 'FALL' || this._stateMachine.getState() === 'IDLE') shift.y = 1;
 
-    return new Character(characterSettings);
+    return shift;
   }
 
-  /**
-   * @param {Scene} coreElement - canvas on which Character will be rendered
-   * @param {Object} position - initial Character position
-   * @param {number} position.x - canvas coordinates
-   * @param {number} position.y - canvas coordinates
-   * @param {Object} mainSettings - main Character settings
-   * @param {Flipbook} mainSettings.mainRightFlipbook
-   * @param {Flipbook} mainSettings.mainLeftFlipbook
-   * @param {checkPosition} mainSettings.checkPosition - function to check any collisions and possibility to move.
-   * @param {Array} mainSettings.hitboxes - hitboxes of character
-   * @param {number} mainSettings.speed - speed of a Character in px per second
-   * @param {Object} moveSettings - settings for move action
-   * @param {Flipbook} moveSettings.moveRightFlipbook
-   * @param {Flipbook} moveSettings.moveLeftFlipbook
-   * @param {string} moveSettings.moveRightCode - main right move action code
-   * @param {string} moveSettings.moveLeftCode - main left move action code
-   * @param {string} moveSettings.alternativeMoveRightCode - alternative right move action code
-   * @param {string} moveSettings.alternativeMoveLeftCode - alternative left move action code
-   * @param {Object} jumpSettings - settings for jump action
-   * @param {Flipbook} jumpSettings.jumpRightFlipbook
-   * @param {Flipbook} jumpSettings.jumpLeftFlipbook
-   * @param {string} jumpSettings.jumpCode - main jump action code
-   * @param {string} jumpSettings.alternativeJumpCode - alternative jump action code
-   * @param {Object} attackSettings - settings for attack actions
-   * @param {Flipbook} attackSettings.attackRightFlipbook
-   * @param {Flipbook} attackSettings.attackLeftFlipbook
-   * @param {string} attackSettings.attackCode - main attack action code
-   * @returns {Character}
-   */
-  constructor({
-    coreElement,
-    position,
-    mainSettings,
-    moveSettings: {
-      moveRightFlipbook,
-      moveLeftFlipbook,
-      moveRightCode,
-      moveLeftCode,
-      alternativeMoveRightCode,
-      alternativeMoveLeftCode,
-    },
-    jumpSettings: {
-      jumpRightFlipbook,
-      jumpLeftFlipbook,
-      jumpCode,
-      alternativeJumpCode,
-    },
-    attackSettings: {
-      attackRightFlipbook,
-      attackLeftFlipbook,
-      attackCode,
-    },
-  }: ICharacterConstructor) {
-    if (coreElement) this._coreElement = coreElement;
-    else throw new Error('coreElement is required for Character!');
+  // @TODO: We do it wrong!
+  private _getOffset(time: number): IPoint {
+    const dt = (time - this._timeOfLastRender) / 1000.0;
+    const shift = this._getShift();
+    return {
+      x: shift.x * MOVING_SPEED * dt,
+      y: shift.y * JUMPING_SPEED * dt,
+    };
+  }
 
-    this._validateFlipbooks(mainSettings.mainRightFlipbook, moveRightFlipbook, jumpRightFlipbook, attackRightFlipbook);
+  private _doAction(action: string, direction: Direction) {
+    if (this._direction !== direction) this._direction = direction;
+    if (this._stateMachine.makeTransition(action)) {
+      this._currentFlipbook.stop();
+      this._currentFlipbook.reset();
+      this._currentFlipbook = this._flipbookMap.get(this._stateMachine.getState());
+      if (this._direction === 'LEFT') this._currentFlipbook.mirror();
+    }
+  }
 
-    this.mainSettings = mainSettings;
-    this.mainSettings.checkPosition = mainSettings.checkPosition || (() => true);
-    this.moveSettings.moveRightFlipbook = moveRightFlipbook;
-    this.moveSettings.moveLeftFlipbook = moveLeftFlipbook;
-    this.jumpSettings.jumpRightFlipbook = jumpRightFlipbook;
-    this.jumpSettings.jumpLeftFlipbook = jumpLeftFlipbook;
-    this.attackSettings.attackRightFlipbook = attackRightFlipbook;
-    this.attackSettings.attackLeftFlipbook = attackLeftFlipbook;
-    // move codes override
-    if (moveRightCode) this.moveSettings.moveRightCode = moveRightCode;
-    if (moveLeftCode) this.moveSettings.moveLeftCode = moveLeftCode;
-    if (alternativeMoveRightCode) this.moveSettings.alternativeMoveRightCode = alternativeMoveRightCode;
-    if (alternativeMoveLeftCode) this.moveSettings.alternativeMoveLeftCode = alternativeMoveLeftCode;
-    // jump codes override
-    if (jumpCode) this.jumpSettings.jumpCode = jumpCode;
-    if (alternativeJumpCode) this.jumpSettings.alternativeJumpCode = alternativeJumpCode;
-    // attack code override
-    if (attackCode) this.attackSettings.attackCode = attackCode;
+  private _initListeners() {
+    window.addEventListener('keydown', this[_onKeyDownHandler], { passive: true });
+    window.addEventListener('keyup', this[_onKeyUpHandler], { passive: true });
+  }
 
-    // initial position overrides
-    if (typeof position.x === 'number') this.position.x = position.x;
-    if (typeof position.y === 'number') this.position.y = position.y;
+  private _unsubscribeListeners() {
+    window.removeEventListener('keydown', this[_onKeyDownHandler]);
+    window.removeEventListener('keyup', this[_onKeyUpHandler]);
+  }
 
-    this._actionHandlerHash = {
-      [this.moveSettings.moveLeftCode]: this.moveLeft.bind(this),
-      [this.moveSettings.alternativeMoveLeftCode]: this.moveLeft.bind(this),
-      [this.moveSettings.moveRightCode]: this.moveRight.bind(this),
-      [this.moveSettings.alternativeMoveRightCode]: this.moveRight.bind(this),
-      [this.jumpSettings.jumpCode]: this.jump.bind(this),
-      [this.jumpSettings.alternativeJumpCode]: this.jump.bind(this),
-      [this.attackSettings.attackCode]: this.attack.bind(this),
-    } as any;
-    this._createOffscreenCanvas();
+  private [_onKeyDownHandler](event: KeyboardEvent) {
+    if (this._controlMap.has(event.code)) {
+      this._heldControlMap.set(event.code, true);
+      const [action, direction] = this._controlMap.get(event.code);
+      if (direction == null) this._doAction(action, this._direction);
+      else this._doAction(action, direction);
+    }
+  }
+
+  private [_onKeyUpHandler](event: KeyboardEvent) {
+    if (this._controlMap.has(event.code)) {
+      this._heldControlMap.set(event.code, false);
+      const [action, direction] = this._controlMap.get(event.code);
+      if (action === this._stateMachine.getState()) this._doAction('IDLE', this._direction);
+    }
+  }
+
+  constructor(options: any) {
+    super(options);
+
+    if (options.collisionDetectorDelegate == null) throw new Error('collisionDetectorDelegate is required option!');
+    this._collisionDetector = options.collisionDetectorDelegate;
+
+    if (options.transitions == null) throw new Error('transitions is required option!');
+    this._stateMachine = new NonDeterminedStateMachine(
+      new Set(Object.keys(options.transitions)),
+      new Map(Object.entries(options.transitions)),
+    );
+    this._flipbookMap = new Map(Object.keys(options.transitions).map((item) => [item, null]));
+
+    if (options.controls == null) throw new Error('controls is required option!');
+    this._controlMap = new Map(Object.entries(options.controls));
+    this._heldControlMap = new Map(Object.keys(options.controls).map((item) => [item, false]));
+
+    this[_onKeyDownHandler] = this[_onKeyDownHandler].bind(this);
+    this[_onKeyUpHandler] = this[_onKeyUpHandler].bind(this);
+  }
+
+  public destructor() {
+    this._unsubscribeListeners();
+  }
+
+  public init() {
     this._initListeners();
-    this._setOnChangeJumpFrame();
-    this.stop();
   }
 
-  get currentActionType() {
-    return this._currentActionType;
-  }
-
-  set currentActionType(actionName) {
-    if (this.currentActionType !== actionName) this._currentActionType = actionName;
-    if (actionName === 'STOP') {
-      if (this._hooks.onStop instanceof Function) this._hooks.onStop();
-    }
-  }
-
-  moveRight() {
-    if (this._moving && this._direction === 'RIGHT') return;
-    this.currentActionType = 'MOVE';
-    this._direction = 'RIGHT';
-    this._moving = true;
-    this.flipbook = this.moveSettings.moveRightFlipbook;
-    this.flipbook.start();
-  }
-  moveLeft() {
-    if (this._moving && this._direction === 'LEFT') return;
-    this.currentActionType = 'MOVE';
-    this._direction = 'LEFT';
-    this._moving = true;
-    this.flipbook = this.moveSettings.moveLeftFlipbook;
-    this.flipbook.start();
-  }
-  jump() {
-    if (this._jumping) return;
-    this._jumping = true;
-    this.currentActionType = 'JUMP';
-    this.flipbook = this._direction === 'RIGHT'
-      ? this.jumpSettings.jumpRightFlipbook : this.jumpSettings.jumpLeftFlipbook;
-    this.flipbook.start();
-  }
-  stop() {
-    if (this._jumping) return;
-    if (!this._jumping && this._moving) {
-      this._stopAllFlipbooks();
-      if (this._direction === 'RIGHT') this.moveRight();
-      if (this._direction === 'LEFT') this.moveLeft();
-    } else {
-      this.currentActionType = 'STOP';
-      this._stopAllFlipbooks();
-      this.flipbook = this._direction === 'RIGHT'
-        ? this.mainSettings.mainRightFlipbook : this.mainSettings.mainLeftFlipbook;
-      if (this.flipbook instanceof Flipbook) this.flipbook.start();
-    }
-  }
-  attack() {
-    if (this.currentActionType === 'ATTACK') return;
-    this.currentActionType = 'ATTACK';
-    this.flipbook = this._direction === 'RIGHT'
-      ? this.attackSettings.attackRightFlipbook : this.attackSettings.attackLeftFlipbook;
-    this.flipbook.start();
-  }
 
   /**
    * The main method for rendering a Character. Return current frame of a Character.
@@ -347,166 +212,28 @@ export default class Character {
    * Frame will change based on Flipbook settings which you have passed as a argument.
    * @returns {Image | HTMLCanvasElement}
    */
-  render() {
-    const offset = this._getOffset();
-    if (this._moving && this._direction === 'RIGHT') this._changePosition(offset);
-    if (this._moving && this._direction === 'LEFT') this._changePosition(-offset);
-    if (this._jumping && this._jumpDirection === 'UP') this._changePosition(0, -6);
-    if (this._jumping && this._jumpDirection === 'DOWN') this._changePosition(0, 6);
-    if (!this._jumping) this._changePosition(0, 6);
-    this._lastRenderTime = Date.now();
+  render(time: number) {
+    const offset = this._getOffset(time);
+    this._updatePosition(offset);
+    this._timeOfLastRender = time;
 
-    if (this.showHitBoxes) {
-      this._renderer.clearRect(0, 0, this.width, this.height);
-      this._renderer.drawImage(
-        this.flipbook.currentSprite,
-        0,
-        0,
-        this.width,
-        this.height,
-        0,
-        0,
-        this.width,
-        this.height,
-      );
-
-      // this.mainSettings.hitBoxes.forEach(hitBox => {
-      //   const {
-      //     from: { x: fx, y: fy },
-      //     to: { x: tx, y: ty },
-      //   } = hitBox;
-      //   const width = tx - fx;
-      //   const height = ty - fy;
-
-      //   this._renderer.beginPath();
-      //   this._renderer.rect(fx, fy, width, height);
-      //   this._renderer.stroke();
-      // });
-
-      return this._offscreenCanvas;
-    }
-    return this.flipbook.currentSprite;
+    return this._currentFlipbook.currentSprite;
   }
 
-  /**
-   * You have to call destroy method if a Character will disappear to prevent memory leaks
-   */
-  destroy() {
-    window.removeEventListener('keydown', this._keydownEventHandler);
-    window.removeEventListener('keyup', this._keyupEventHandler);
-  }
+  _updatePosition(offset: IPoint) {
+    if (!this._collisionDetector.inSceneBound(this)) return;
 
-  /**
-   * This method is used to add hooks for a character.
-   * Available hooks - onMove, onStop, onDamage
-   * @param hook
-   * @param handler
-   */
-  on(hook: string, handler: Function) {
-    const isValidHook = ['onMove', 'onStop', 'onDamage'].includes(hook);
-    const isValidHandler = handler instanceof Function;
-    if (isValidHook && isValidHandler) {
-      // @ts-ignore
-      this._hooks[hook] = handler;
-    }
-  }
+    const canMove = this._collisionDetector.checkMoveCollisions(this, offset);
 
-  _validateFlipbooks(mainFlipbook: any, moveFlipbook: any, jumpFlipbook: any, attackFlipbook: any) {
-    const isMainFlipbookValid = mainFlipbook != null
-      && (mainFlipbook instanceof Sprite || mainFlipbook instanceof Flipbook);
-    const isMoveFlipbookValid = moveFlipbook != null && moveFlipbook instanceof Flipbook;
-    const isJumpFlipbookValid = jumpFlipbook != null && jumpFlipbook instanceof Flipbook;
-    const isAttackFlipbookValid = attackFlipbook != null && attackFlipbook instanceof Flipbook;
+    // if (canMove.down !== 0 && this._stateMachine.getState() !== 'JUMP') this._doAction('FALL', this._direction);
 
-    const invalidFlipbooks = [];
+    if (dx > 0) this.position.x += Math.min(canMove.right, dx);
+    if (dx < 0) this.position.x += Math.max(-canMove.left, dx);
+    if (dy > 0) this.position.y += Math.min(canMove.down, dy);
+    if (dy < 0) this.position.y += Math.max(-canMove.up, dy);
 
-    if (!isMainFlipbookValid) invalidFlipbooks.push('mainFlipbook');
-    if (!isMoveFlipbookValid) invalidFlipbooks.push('moveFlipbook');
-    if (!isJumpFlipbookValid) invalidFlipbooks.push('jumpFlipbook');
-    if (!isAttackFlipbookValid) invalidFlipbooks.push('attackFlipbook');
-
-    if (invalidFlipbooks.length) throw new Error(`${invalidFlipbooks} are required! ${ERROR_HELP_TEXT}`);
-  }
-
-  _createOffscreenCanvas() {
-    this._offscreenCanvas = document.createElement('canvas');
-    this._offscreenCanvas.width = this.mainSettings.mainRightFlipbook.width;
-    this._offscreenCanvas.height = this.mainSettings.mainRightFlipbook.height;
-    this._renderer = this._offscreenCanvas.getContext('2d');
-    this._renderer.imageSmoothingEnabled = false;
-  }
-
-  _initListeners() {
-    window.addEventListener('keydown', this._keydownEventHandler.bind(this), { passive: true });
-    window.addEventListener('keyup', this._keyupEventHandler.bind(this), { passive: true });
-  }
-
-  _keydownEventHandler(event: KeyboardEvent) {
-    if (Object.keys(this._actionHandlerHash).includes(event.code)) this._actionHandlerHash[event.code](event);
-  }
-
-  _keyupEventHandler(event: KeyboardEvent) {
-    if ([this.jumpSettings.jumpCode, this.jumpSettings.alternativeJumpCode].includes(event.code)) return;
-    if ([
-      this.moveSettings.moveRightCode,
-      this.moveSettings.alternativeMoveRightCode,
-      this.moveSettings.moveLeftCode,
-      this.moveSettings.alternativeMoveLeftCode,
-    ].includes(event.code)) {
-      this._moving = false;
-    }
-    this.stop();
-  }
-
-  get width() {
-    return this.flipbook.currentSprite.width;
-  }
-
-  get height() {
-    return this.flipbook.currentSprite.height;
-  }
-
-  _changePosition(dx = 0, dy = 0) {
-    const { x, y } = this.position;
-    const isWithin = this.mainSettings.hitBoxes.every(hitBox => {
-      const {
-        from: { x: fx, y: fy },
-        to: { x: tx, y: ty },
-      } = hitBox;
-      const sx = x + fx;
-      const sy = y + fy;
-      const width = tx - fx;
-      const height = ty - fy;
-      return this._coreElement.checkBeyondPosition(
-        sx + dx, sy + dy, width, height,
-      );
-    });
-
-    const canMove = {
-      up: Number.MAX_SAFE_INTEGER,
-      down: Number.MAX_SAFE_INTEGER,
-      left: Number.MAX_SAFE_INTEGER,
-      right: Number.MAX_SAFE_INTEGER,
-    };
-
-    for (const hitBox of this.mainSettings.hitBoxes) {
-      const _canMove = this._coreElement.checkMoveCollisions(this.position, hitBox, dx, dy);
-      if (_canMove != null) {
-        canMove.up = Math.min(canMove.up, _canMove.up);
-        canMove.down = Math.min(canMove.down, _canMove.down);
-        canMove.left = Math.min(canMove.left, _canMove.left);
-        canMove.right = Math.min(canMove.right, _canMove.right);
-      }
-    }
-
-    if (isWithin) {
-      if (dx > 0) this.position.x += Math.min(canMove.right, dx);
-      if (dx < 0) this.position.x += Math.max(-canMove.left, dx);
-      if (dy > 0) this.position.y += Math.min(canMove.down, dy);
-      if (dy < 0) this.position.y += Math.max(-canMove.up, dy);
-
-      if (this._hooks.onMove instanceof Function) this._hooks.onMove();
-    }
+    // @TODO:
+    // if (this._hooks.onMove instanceof Function) this._hooks.onMove();
 
     // const isDamageReceived = this.mainSettings.hitBoxes.some(hitBox => {
     //   return this._coreElement.checkDamageCollisions(this.position, hitBox);
@@ -517,45 +244,27 @@ export default class Character {
     // }
   }
 
-  _setOnChangeJumpFrame() {
-    const onChangeHandler = (frameNumber: number, frameCount: number) => {
-      const middleFrameNumber = Math.ceil(frameCount / 2);
-      if (frameNumber > 1 && frameNumber < middleFrameNumber) this._jumpDirection = 'UP';
-      if (frameNumber > middleFrameNumber && frameNumber < frameCount) {
-        this._jumpDirection = 'DOWN';
-      }
-      if (frameNumber === frameCount) {
-        this.actionType = this._prevActionType;
-      }
-    };
-    const catchEndJumping = (frameNumber: number, frameCount: number) => {
-      if (frameNumber === frameCount) {
-        this._jumping = false;
-        this.stop();
-      }
-    };
-    this.jumpSettings.jumpLeftFlipbook.on('frameChange', onChangeHandler);
-    this.jumpSettings.jumpLeftFlipbook.on('frameChange', catchEndJumping);
-    this.jumpSettings.jumpRightFlipbook.on('frameChange', onChangeHandler);
-    this.jumpSettings.jumpRightFlipbook.on('frameChange', catchEndJumping);
-  }
-
-  _getOffset() {
-    const timeChange = Date.now() - this._lastRenderTime;
-    const dt = timeChange / 1000.0;
-    return this.mainSettings.speed * dt;
-  }
-
-  _stopAllFlipbooks() {
-    this._jumping = false;
-    this._moving = false;
-    this.mainSettings.mainLeftFlipbook.stop();
-    this.mainSettings.mainRightFlipbook.stop();
-    this.jumpSettings.jumpRightFlipbook.stop();
-    this.jumpSettings.jumpLeftFlipbook.stop();
-    this.moveSettings.moveRightFlipbook.stop();
-    this.moveSettings.moveLeftFlipbook.stop();
-    this.attackSettings.attackRightFlipbook.stop();
-    this.attackSettings.attackLeftFlipbook.stop();
-  }
+  // @TODO:
+  // _setOnChangeJumpFrame() {
+  //   const onChangeHandler = (frameNumber: number, frameCount: number) => {
+  //     const middleFrameNumber = Math.ceil(frameCount / 2);
+  //     if (frameNumber > 1 && frameNumber < middleFrameNumber) this._jumpDirection = 'UP';
+  //     if (frameNumber > middleFrameNumber && frameNumber < frameCount) {
+  //       this._jumpDirection = 'DOWN';
+  //     }
+  //     if (frameNumber === frameCount) {
+  //       this.actionType = this._prevActionType;
+  //     }
+  //   };
+  //   const catchEndJumping = (frameNumber: number, frameCount: number) => {
+  //     if (frameNumber === frameCount) {
+  //       this._jumping = false;
+  //       this.stop();
+  //     }
+  //   };
+  //   this.jumpSettings.jumpLeftFlipbook.on('frameChange', onChangeHandler);
+  //   this.jumpSettings.jumpLeftFlipbook.on('frameChange', catchEndJumping);
+  //   this.jumpSettings.jumpRightFlipbook.on('frameChange', onChangeHandler);
+  //   this.jumpSettings.jumpRightFlipbook.on('frameChange', catchEndJumping);
+  // }
 }
