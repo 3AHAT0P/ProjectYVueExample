@@ -16,6 +16,7 @@ declare global {
     start(): void,
     stop(): void,
     on(event: string, handler: Function): void
+    getSpriteByUrl(url: string): Sprite | null
     currentSprite: HTMLCanvasElement,
     width: number,
     height: number,
@@ -125,6 +126,10 @@ export default class Flipbook {
 
   get height() {
     return this._offscreenCanvas.height;
+  }
+
+  getSpriteByUrl(url: string) {
+    return this._sprites.find(sprite => sprite.src === url) || null;
   }
 
   _createOffscreenCanvas() {

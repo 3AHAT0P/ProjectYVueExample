@@ -22,7 +22,7 @@ export interface IHitBox {
   id: number;
   from: IPoint;
   to: IPoint;
-  options: IHitBoxOptions;
+  options?: IHitBoxOptions;
 }
 
 export default class GameObject extends RenderedObject implements IRenderedObject {
