@@ -6,9 +6,7 @@ import {
 } from '@/lib/core/Canvas/mixins/tileableCanvas/constants';
 import { RenderedLayers } from '@/lib/core/Canvas/mixins/tileableCanvas/tileableCanvas';
 import Character from '@/lib/core/InteractiveObject/Character/Character';
-import InteractiveObject from '@/lib/core/InteractiveObject/InteractiveObject';
-import Point from '@/lib/core/utils/classes/Point';
-import GameObject, { IHitBox } from '@/lib/core/RenderedObject/GameObject/GameObject';
+import InteractiveObject from '@/lib/core/InteractiveObject/StaticInteractiveObject';
 import TileMap from '@/lib/core/TileMap/TileMap';
 import { nextFrame } from '@/lib/core/utils/delayers';
 

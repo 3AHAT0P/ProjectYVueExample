@@ -78,7 +78,7 @@ import {
 } from 'vue-property-decorator';
 import { State, Getter, Mutation } from 'vuex-class';
 
-import GameObjectCanvas from '@/lib/core/RenderedObject/GameObject/Canvas';
+import GameObjectCanvas from '@/lib/core/RenderedObject/Sprite/GameObjectCanvas';
 
 import Tile from '@/lib/core/RenderedObject/Tile';
 import Point from '@/lib/core/utils/classes/Point';
@@ -127,14 +127,14 @@ export default class GameObjectEditor extends Vue {
 
     this.tileMapX = this.gameObjectCanvas.width;
     this.tileMapY = this.gameObjectCanvas.height;
-    this.name = this.gameObjectCanvas.gameObjectName;
+    this.name = this.gameObjectCanvas.spriteName;
 
     this.gameObjectCanvas.on(':hitBoxsUpdated', this.onHitBoxesUpdated, this);
   }
 
   @Watch('name')
   private onNameChange(name: string) {
-    this.gameObjectCanvas.gameObjectName = name;
+    this.gameObjectCanvas.spriteName = name;
   }
 
   @Watch('tiles')
@@ -176,7 +176,7 @@ export default class GameObjectEditor extends Vue {
   }
 
   clear() {
-    this.gameObjectCanvas.clearGameObject();
+    this.gameObjectCanvas.clearSprite();
   }
 
   getListGameObjects() {

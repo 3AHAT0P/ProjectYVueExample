@@ -1,7 +1,8 @@
-import Flipbook from '@/lib/core/RenderedObject/Flipbook';
-import Sprite from '@/lib/core/RenderedObject/Sprite';
+import Flipbook from '@/lib/core/RenderedObject/Sprite/Flipbook';
+import Sprite from '@/lib/core/RenderedObject/Sprite/Sprite';
 
 import InteractiveObject from '../InteractiveObject';
+import AnimatedInteractiveObject, { AnimatedInteractiveObjectOptions } from '../AnimatedInteractiveObject';
 
 const ERROR_HELP_TEXT = 'Use Character.create method to create character with a set of sprites';
 
@@ -92,6 +93,10 @@ const controls = {
   Space: ['ATTACK', null],
 };
 
+interface StaticInteractiveObjectOptions extends AnimatedInteractiveObjectOptions {
+
+}
+
 type Direction = 'LEFT' | 'RIGHT';
 
 const _onKeyDownHandler = Symbol('_onKeyDownHandler');
@@ -103,17 +108,20 @@ const MOVING_SPEED = DEFAULT_CELL_SIZE / 2; // Pixels per Second
 const JUMPING_SPEED = DEFAULT_CELL_SIZE / 4; // Pixels per Second
 const FALLING_SPEED = DEFAULT_CELL_SIZE / 4; // Pixels per Second
 
-export default class Character extends InteractiveObject {
+export default class Character extends AnimatedInteractiveObject {
   private _collisionDetector: ICollisionDetectorDelegate = null;
   private _stateMachine: NonDeterminedStateMachine = null;
 
   private _direction: Direction = 'RIGHT';
   private _timeOfLastRender: number = null;
 
-  private _currentFlipbook: Flipbook = null;
   private _flipbookMap: Map<string, Flipbook> = null;
   private _controlMap: Map<string, [string, Direction]> = null;
   private _heldControlMap: Map<string, boolean> = null;
+
+  protected _currentFlipbook: Flipbook = null; // is current flipbook
+
+  protected get _sprite(): Sprite { return this._currentFlipbook.currentSprite; }
 
   // @TODO: We do it wrong!
   private _getShift(): IPoint {
@@ -217,7 +225,7 @@ export default class Character extends InteractiveObject {
     this._updatePosition(offset);
     this._timeOfLastRender = time;
 
-    return this._currentFlipbook.currentSprite;
+    return this._sprite;
   }
 
   _updatePosition(offset: IPoint) {
@@ -227,10 +235,10 @@ export default class Character extends InteractiveObject {
 
     // if (canMove.down !== 0 && this._stateMachine.getState() !== 'JUMP') this._doAction('FALL', this._direction);
 
-    if (dx > 0) this.position.x += Math.min(canMove.right, dx);
-    if (dx < 0) this.position.x += Math.max(-canMove.left, dx);
-    if (dy > 0) this.position.y += Math.min(canMove.down, dy);
-    if (dy < 0) this.position.y += Math.max(-canMove.up, dy);
+    if (offset.x > 0) this.position.x += Math.min(canMove.right, offset.x);
+    if (offset.x < 0) this.position.x += Math.max(-canMove.left, offset.x);
+    if (offset.y > 0) this.position.y += Math.min(canMove.down, offset.y);
+    if (offset.y < 0) this.position.y += Math.max(-canMove.up, offset.y);
 
     // @TODO:
     // if (this._hooks.onMove instanceof Function) this._hooks.onMove();

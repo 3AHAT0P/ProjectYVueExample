@@ -1,46 +1,49 @@
-import GameObject, { IHitBox } from '@/lib/core/RenderedObject/GameObject/GameObject';
+import Sprite from '@/lib/core/RenderedObject/Sprite/Sprite';
+import HitBox from '@/lib/core/HitBox/HitBox';
 
 import Point from '@/lib/core/utils/classes/Point';
 
-interface InteractiveObjectOptions {
-  gameObject: GameObject,
+export interface InteractiveObjectOptions {
   coordTiles?: Point[],
   position?: IPoint,
 }
 
-interface IObjectsRelativePosition {
+export interface IObjectsRelativePosition {
   y: 'ABOVE' | 'BELOW' | 'MIDDLE';
   x: 'LEFT_OF' | 'RIGHT_OF' | 'MIDDLE';
 }
 
-export default class InteractiveObject {
-  protected _gameObject: GameObject = null;
+export default abstract class InteractiveObject {
   protected _coordTiles: Point[] = [];
   protected _position: Point = new Point(0, 0);
 
-  public get renderedObject(): IRenderedObject { return this._gameObject; }
+  protected abstract get _sprite(): Sprite;
+
+  public get renderedObject(): IRenderedObject { return this._sprite; }
   public get position() { return this._position.toObject(); }
 
   public get boundingRect(): IBoundingRect {
+    const sourceBoundingRect = this._sprite.sourceBoundingRect;
     return {
       x: this._position.x,
       y: this._position.y,
-      width: this._gameObject.width,
-      height: this._gameObject.height,
+      width: sourceBoundingRect.width,
+      height: sourceBoundingRect.height,
     };
   }
 
   public get boundingEdges(): IBoundingEdges {
+    const sourceBoundingRect = this._sprite.sourceBoundingRect;
     return {
       left: this._position.x,
       top: this._position.y,
-      right: this._position.x + this._gameObject.width,
-      bottom: this._position.y + this._gameObject.height,
+      right: this._position.x + sourceBoundingRect.width,
+      bottom: this._position.y + sourceBoundingRect.height,
     };
   }
 
   public get hitBoxes(): IBoundingEdges[] {
-    return this._gameObject.hitBoxes.map((hitBox) => ({
+    return this._sprite.hitBoxes.map((hitBox: HitBox) => ({
       left: this._position.x + hitBox.from.x,
       top: this._position.y + hitBox.from.y,
       right: this._position.x + hitBox.to.x,
@@ -80,7 +83,6 @@ export default class InteractiveObject {
   }
 
   constructor(options: InteractiveObjectOptions) {
-    if (options.gameObject) this._gameObject = options.gameObject;
     if (options.coordTiles) this._coordTiles = options.coordTiles;
     if (options.position) this._position.updateCoordinates(options.position.x, options.position.y);
   }

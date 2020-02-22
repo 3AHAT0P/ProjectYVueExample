@@ -1,5 +1,5 @@
-import InteractiveObject from '@/lib/core/InteractiveObject/InteractiveObject';
-import GameObject from '@/lib/core/RenderedObject/GameObject/GameObject';
+import InteractiveObject from '@/lib/core/InteractiveObject/StaticInteractiveObject';
+import GameObject from '@/lib/core/RenderedObject/Sprite/GameObject';
 
 import { updateInheritanceSequance, checkInheritanceSequance, copyArray } from '@/lib/core/utils';
 

@@ -37,7 +37,7 @@ import {
 import { State, Getter, Mutation } from 'vuex-class';
 
 import CanvasClassBuilder from '@/lib/core/Canvas/CanvasClassBuilder';
-import GameObject from '@/lib/core/RenderedObject/GameObject/GameObject';
+import GameObject from '@/lib/core/RenderedObject/Sprite/GameObject';
 import Tile from '@/lib/core/RenderedObject/Tile';
 
 import Point from '@/lib/core/utils/classes/Point';

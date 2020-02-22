@@ -21,7 +21,7 @@ import {
 } from '@/lib/core/Canvas/mixins/tileableCanvas/constants';
 import Scene from '@/lib/core/Scene/Scene';
 import TileMap from '@/lib/core/TileMap/TileMap';
-import GameObject from '@/lib/core/RenderedObject/GameObject/GameObject';
+import GameObject from '@/lib/core/RenderedObject/Sprite/GameObject';
 import Character from '@/lib/core/InteractiveObject/Character/Character';
 
 const { BASE_URL } = process.env;

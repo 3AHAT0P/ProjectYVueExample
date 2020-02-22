@@ -1,7 +1,7 @@
 import Point from '@/lib/core/utils/classes/Point';
 import Cursor from '@/lib/core/utils/classes/Cursor';
 
-import GameObject from '@/lib/core/RenderedObject/GameObject/GameObject';
+import GameObject from '@/lib/core/RenderedObject/Sprite/GameObject';
 import Tile from '@/lib/core/RenderedObject/Tile';
 
 import { updateInheritanceSequance, checkInheritanceSequance } from '@/lib/core/utils';

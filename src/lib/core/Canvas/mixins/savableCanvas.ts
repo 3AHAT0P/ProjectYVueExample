@@ -1,8 +1,8 @@
 import Point from '@/lib/core/utils/classes/Point';
-import InteractiveObject from '@/lib/core/InteractiveObject/InteractiveObject';
+import InteractiveObject from '@/lib/core/InteractiveObject/StaticInteractiveObject';
 import InteractiveObjectFactory from '@/lib/core/InteractiveObject/InteractiveObjectFactory';
 
-import GameObject from '@/lib/core/RenderedObject/GameObject/GameObject';
+import GameObject from '@/lib/core/RenderedObject/Sprite/GameObject';
 import Tile from '@/lib/core/RenderedObject/Tile';
 
 import { updateInheritanceSequance, checkInheritanceSequance } from '@/lib/core/utils';
@@ -118,8 +118,18 @@ const SavableCanvasMixin = <T = any>(BaseClass: Constructor = TileableCanvas): C
 
       for (const [id, _meta] of Object.entries<any>(uniqGameObjects)) {
         if (_meta.hitBoxes != null) {
-          promises.push(GameObject.fromMeta(_meta).then((gameObject) => { renderedObjects[id] = gameObject; }));
-        } else renderedObjects[id] = Tile.fromMeta(_meta, imageHash[_meta.sourceURL]);
+          promises.push(
+            GameObject
+              .fromMeta(_meta)
+              .then((gameObject) => { renderedObjects[id] = gameObject; }),
+          );
+        } else {
+          promises.push(
+            Tile
+              .fromMeta(_meta, imageHash[_meta.sourceURL])
+              .then((tile) => { renderedObjects[id] = tile; }),
+          );
+        }
       }
 
       await Promise.all(promises);

@@ -2,11 +2,10 @@ import CanvasClassBuilder, {
   Canvas,
   IResizeableCanvas,
   IResizeableCanvasProtected,
-  ResizeableCanvasOptions,
 } from '@/lib/core/Canvas/CanvasClassBuilder';
 import { getRandomArbitraryInt } from '@/utils/';
 
-import GameObject, { IGameObjectMeta } from './GameObject';
+import Sprite, { ISpriteMeta } from './Sprite';
 
 type BaseInstanceType = Canvas &
   IResizeableCanvas & IResizeableCanvasProtected;
@@ -21,23 +20,21 @@ const BaseClass: BaseClassType = new CanvasClassBuilder()
   .applyResizeableMixin()
   .build() as any;
 
-type TileSetOptions = ResizeableCanvasOptions & { };
-
 const _onMouseDownHandler = Symbol('_onMouseDownHandler');
 const _onMouseMoveHandler = Symbol('_onMouseMoveHandler');
 const _onMouseUpHandler = Symbol('_onMouseUpHandler');
 
 // @ts-ignore
-export default class GameObjectCanvas extends BaseClass {
-  private _gameObject: GameObject = null;
-
+export default class SpriteCanvas extends BaseClass {
   private _modKey = 'shiftKey';
 
   private _eventDown: MouseEvent = null;
   private _eventMove: MouseEvent = null;
 
-  public get gameObjectName() { return this._gameObject.name; }
-  public set gameObjectName(value) { this._gameObject.name = value; }
+  protected _sprite: Sprite = null;
+
+  public get spriteName() { return this._sprite.name; }
+  public set spriteName(value) { this._sprite.name = value; }
 
   private [_onMouseDownHandler](event: MouseEvent) {
     if ((event as any)[this._modKey]) this._eventDown = event;
@@ -80,8 +77,8 @@ export default class GameObjectCanvas extends BaseClass {
       }
       this._eventDown = null;
       this._eventMove = null;
-      this._gameObject.appendHitBox(from, to, options);
-      this.emit(':hitBoxsUpdated', { hitBoxes: this._gameObject.hitBoxes });
+      this._sprite.appendHitBox(from, to, options);
+      this.emit(':hitBoxsUpdated', { hitBoxes: this._sprite.hitBoxes });
       this._renderInNextFrame();
     }
   }
@@ -110,11 +107,11 @@ export default class GameObjectCanvas extends BaseClass {
   }
 
   private _drawHitBoxes() {
-    if (this._gameObject.hitBoxes.length === 0) return;
+    if (this._sprite.hitBoxes.length === 0) return;
 
     const ctx = this.ctx;
     ctx.save();
-    for (const { from, to, options } of this._gameObject.hitBoxes) {
+    for (const { from, to, options } of this._sprite.hitBoxes) {
       ctx.strokeStyle = `hsla(${options.color}, 50%, 50%, .6)`;
       ctx.fillStyle = `hsla(${options.color}, 50%, 50%, .2)`;
 
@@ -165,44 +162,50 @@ export default class GameObjectCanvas extends BaseClass {
       width: this.width,
       height: this.height,
     };
-    this._renderRenderedObject(this._gameObject, selfBoundingRect);
+    this._renderRenderedObject(this._sprite, selfBoundingRect);
 
     this._drawHitBoxes();
     this._drawCurrentRect();
-    // this.dispatchEvent(buildEvent(':render', null, { ctx: this._ctx }));
   }
 
   constructor() {
     super();
-    this._gameObject = new GameObject({});
 
     this[_onMouseDownHandler] = this[_onMouseDownHandler].bind(this);
     this[_onMouseMoveHandler] = this[_onMouseMoveHandler].bind(this);
     this[_onMouseUpHandler] = this[_onMouseUpHandler].bind(this);
   }
 
-  public updateCache(image: CanvasImageSource) {
-    this._gameObject.drawImage(image);
-    this.resize(this._gameObject.width * this.sizeMultiplier, this._gameObject.height * this.sizeMultiplier);
-    this.emit(':hitBoxsUpdated', { hitBoxes: this._gameObject.hitBoxes });
+  public async init() {
+    await super.init();
+    this._sprite = await Sprite.create<Sprite>({});
   }
 
-  public clearGameObject(): void {
-    this._gameObject.clear();
+  public updateCache(image: CanvasImageSource) {
+    this._sprite.drawImage(image);
+    const sourceBoundingRect = this._sprite.sourceBoundingRect;
+    this.resize(sourceBoundingRect.width * this.sizeMultiplier, sourceBoundingRect.height * this.sizeMultiplier);
+    this.emit(':hitBoxsUpdated', { hitBoxes: this._sprite.hitBoxes });
+  }
+
+  public clearSprite(): void {
+    this._sprite.clear();
     this._renderInNextFrame();
-    this.emit(':hitBoxsUpdated', { hitBoxes: this._gameObject.hitBoxes });
+    this.emit(':hitBoxsUpdated', { hitBoxes: this._sprite.hitBoxes });
   }
 
   public save() {
-    return this._gameObject.meta;
+    return this._sprite.meta;
   }
 
-  public async load(meta: IGameObjectMeta) {
-    await this._gameObject.load(meta);
-    const size = Math.max(this._gameObject.sourceBoundingRect.width, this._gameObject.sourceBoundingRect.height);
+  public async load(meta: ISpriteMeta) {
+    this._sprite.applyMeta(meta);
+    await this._sprite.init();
+    const sourceBoundingRect = this._sprite.sourceBoundingRect;
+    const size = Math.max(sourceBoundingRect.width, sourceBoundingRect.height);
     while (160 / size > this.sizeMultiplier) this._updateMultiplier(2);
     while (330 / size < this.sizeMultiplier) this._updateMultiplier(1 / 2);
-    this.resize(this._gameObject.width * this.sizeMultiplier, this._gameObject.height * this.sizeMultiplier);
+    this.resize(sourceBoundingRect.width * this.sizeMultiplier, sourceBoundingRect.height * this.sizeMultiplier);
     this._renderInNextFrame();
   }
 }

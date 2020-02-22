@@ -61,7 +61,7 @@ const HoverableTileCanvasMixin = <T = any>(BaseClass: Constructor = TileableCanv
         height: canvas.height,
       };
 
-      this._hoverTile = new Tile({ source, sourceURL, sourceBoundingRect });
+      this._hoverTile = await Tile.create({ source, sourceURL, sourceBoundingRect });
     }
 
     private _hoverTilePlace(x: number, y: number) {

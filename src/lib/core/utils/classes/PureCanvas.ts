@@ -82,6 +82,19 @@ export default class PureCanvas {
     this._ctx.restore();
   }
 
+  public async flip(type?: 'X' | 'Y') {
+    const image = await createImageBitmap(this.canvas);
+    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+    if (type === 'X') {
+      this.ctx.scale(-1, 1);
+      this.ctx.drawImage(image, -image.width, 0);
+    }
+    if (type === 'Y') {
+      this.ctx.scale(1, -1);
+      this.ctx.drawImage(image, 0, -image.height);
+    }
+  }
+
   public clear() {
     this._ctx.clearRect(0, 0, this.width, this.height);
     this._applyImageSmoothing();

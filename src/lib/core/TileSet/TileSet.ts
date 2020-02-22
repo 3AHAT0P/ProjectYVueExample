@@ -86,21 +86,26 @@ export default class TileSet extends BaseClass {
     const source = this._imageSrc;
     const { x: columns, y: rows } = this.sizeInTiles;
     const cellSize = this.cellSize;
+    const promises = [];
     for (let row = 0; row < rows; row += 1) {
       for (let col = 0; col < columns; col += 1) {
-        const tile = new Tile({
-          source,
-          sourceURL,
-          sourceBoundingRect: {
-            x: col * cellSize.x,
-            y: row * cellSize.y,
-            width: cellSize.x,
-            height: cellSize.y,
-          },
-        });
-        this._updateTileByCoord(col, row, '0', tile);
+        promises.push(
+          Tile
+            .create({
+              source,
+              sourceURL,
+              sourceBoundingRect: {
+                x: col * cellSize.x,
+                y: row * cellSize.y,
+                width: cellSize.x,
+                height: cellSize.y,
+              },
+            })
+            .then((tile) => this._updateTileByCoord(col, row, '0', tile)),
+        );
       }
     }
+    await Promise.all(promises);
   }
 
   private async _loadMetadata() {
