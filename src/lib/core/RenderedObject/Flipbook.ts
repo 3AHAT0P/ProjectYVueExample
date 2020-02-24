@@ -1,4 +1,5 @@
 import Sprite from './Sprite';
+import { IHitBox } from '@/lib/core/RenderedObject/GameObject/GameObject';
 
 interface IEventHash {
   frameChange: Function[],
@@ -17,6 +18,7 @@ declare global {
     stop(): void,
     on(event: string, handler: Function): void
     getSpriteByUrl(url: string): Sprite | null
+    setHitboxesForSprite(spriteUrl: string, hitboxes: IHitBox[]): void
     currentSprite: HTMLCanvasElement,
     width: number,
     height: number,
@@ -130,6 +132,11 @@ export default class Flipbook {
 
   getSpriteByUrl(url: string): Sprite | null {
     return this._sprites.find(sprite => sprite.src === url) || null;
+  }
+
+  setHitboxesForSprite(spriteUrl: string, hitboxes: IHitBox[]) {
+    const sprite = this.getSpriteByUrl(spriteUrl);
+    sprite.hitboxes = hitboxes;
   }
 
   _createOffscreenCanvas() {

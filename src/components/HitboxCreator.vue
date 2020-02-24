@@ -9,13 +9,14 @@
           </option>
         </select>
       </label>
-      <button @click="saveHitbox">Save Hitbox for the sprite</button>
+      <button @click="saveHitbox">Save Hitboxes for the sprite</button>
+      <button @click="resetHitbox">Reset Hitboxes for the sprite</button>
     </div>
     <canvas ref="hitboxCreator"></canvas>
     <div>
       <span>Hitboxes</span>
       <p>
-        {{hitboxes}}
+        {{sprites}}
       </p>
     </div>
   </div>
@@ -28,12 +29,12 @@ import { IHitBox } from '@/lib/core/RenderedObject/GameObject/GameObject';
   type sprite = {
     url: string;
     id: string;
-    hitbox: IHitBox;
+    hitboxes: IHitBox;
   }
 
   @Component({
     components: { },
-    props: ['sprites', 'flipbook', 'hitboxes'],
+    props: ['sprites', 'flipbook'],
   })
 export default class HitboxCreator extends Vue {
     private blockName: string = 'hitbox-creator';
@@ -43,7 +44,9 @@ export default class HitboxCreator extends Vue {
     private canvas: HTMLCanvasElement;
     private startPoint: { x: number; y: number };
     private mousedown: boolean;
-    private hitbox: { from: { x: number; y: number }; to: { x: number; y: number } };
+    private hitboxes: IHitBox[] = [];
+    private hitbox: IHitBox;
+    private flipbook: IFlipbook;
 
     mounted() {
       this.canvas = this.$refs.hitboxCreator;
@@ -53,7 +56,14 @@ export default class HitboxCreator extends Vue {
     }
 
     saveHitbox() {
-      if (this.hitbox) this.$emit('saveHitbox', this.hitbox);
+      if (this.hitboxes) this.$emit('saveHitbox', this.chosenSprite.id, this.hitboxes);
+      this.hitboxes = [];
+    }
+
+    resetHitbox() {
+      this.hitboxes = [];
+      this.hitbox = null;
+      this.showChosenSprite();
     }
 
     @Watch('chosenSprite')
@@ -78,6 +88,7 @@ export default class HitboxCreator extends Vue {
         fh,
       );
       this.drawSpriteRect();
+      this.drawSpriteHitboxes(sprite.hitboxes);
     }
 
     initDrawListeners() {
@@ -94,6 +105,8 @@ export default class HitboxCreator extends Vue {
 
     onMouseUp() {
       this.mousedown = false;
+      this.hitboxes.push(this.hitbox);
+      this.hitbox = null;
     }
 
     onMouseMove(e: MouseEvent) {
@@ -110,7 +123,7 @@ export default class HitboxCreator extends Vue {
         this.ctx.lineWidth = 1;
         this.ctx.stroke();
 
-        this.hitbox = { from: { x, y }, to: { x: offsetX, y: offsetY } };
+        this.hitbox = { id: Date.now(), from: { x, y }, to: { x: offsetX, y: offsetY } };
       }
     }
 
@@ -120,6 +133,26 @@ export default class HitboxCreator extends Vue {
       this.ctx.rect(0, 0, width, height);
       this.ctx.lineWidth = 1;
       this.ctx.strokeStyle = 'black';
+      this.ctx.stroke();
+    }
+
+    private drawSpriteHitboxes(hitboxes: IHitBox[]) {
+      if (hitboxes.length) {
+        hitboxes.forEach(hitbox => this.drawHitbox(hitbox));
+      }
+
+      if (this.hitboxes.length) this.hitboxes.forEach(ownHitbox => this.drawHitbox(ownHitbox));
+    }
+
+    private drawHitbox(hitbox: IHitBox) {
+      const { from: { x, y }, to: { x: offsetX, y: offsetY } } = hitbox;
+      const width = offsetX - x;
+      const height = offsetY - y;
+
+      this.ctx.beginPath();
+      this.ctx.rect(x, y, width, height);
+      this.ctx.lineWidth = 1;
+      this.ctx.strokeStyle = 'blue';
       this.ctx.stroke();
     }
 }

@@ -1,3 +1,5 @@
+import { IHitBox } from '@/lib/core/RenderedObject/GameObject/GameObject';
+
 declare global {
   interface Sprite {
     src: string,
@@ -5,10 +7,12 @@ declare global {
     width: number,
     height: number,
     currentSprite: HTMLImageElement,
+    hitboxes: IHitBox[],
   }
 }
 export default class Sprite {
   src: string = null;
+  hitboxes: IHitBox[] = [];
 
   private _image: HTMLImageElement = null;
 

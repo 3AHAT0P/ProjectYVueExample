@@ -1,6 +1,13 @@
 <template>
   <div :class="blockName | bemMods(mods)">
     <div>
+      <label>
+        Load flipbbok
+        <input v-model="flipbookUrl">
+      </label>
+      <button @click="loadFlipbook">Load</button>
+    </div>
+    <div>
       <button @click="showAnimationTab">Animation Settings</button>
       <button @click="showHitboxTab">Hitbox Settings</button>
     </div>
@@ -37,20 +44,22 @@
         <HitboxCreator
           :flipbook="flipbook"
           :sprites="sprites"
-          :hitboxes="hitboxes"
           @saveHitbox="addHitbox"
         />
       </div>
+    </div>
+    <div>
+      <label>
+        Enter flipbook name
+        <input v-model="flipbookName">
+      </label>
+      <button @click="saveFlipbook">Save Flipbook</button>
     </div>
   </div>
 </template>
 
 <script lang="ts">
-import {
-  Vue,
-  Component,
-  Watch,
-} from 'vue-property-decorator';
+import { Component, Vue, Watch } from 'vue-property-decorator';
 import * as draggable from 'vuedraggable';
 
 import { uuid } from '@/utils';
@@ -59,10 +68,10 @@ import Sprite from '@/lib/core/RenderedObject/Sprite';
 import { IHitBox } from '@/lib/core/RenderedObject/GameObject/GameObject';
 import HitboxCreator from '@/components/HitboxCreator.vue';
 
-type sprite = {
+  type sprite = {
   url: string;
   id: string;
-  hitbox: IHitBox;
+  hitboxes: IHitBox[];
 }
 
 @Component({
@@ -72,13 +81,13 @@ export default class FlipbookCreator extends Vue {
   private mods: Hash = {};
   private sprites: sprite[] = [];
   private flipbook: IFlipbook = null;
+  private flipbookName: string = '';
+  private flipbookUrl: string = '/flipbooks/knightFlipbook.json';
 
   private blockName: string = 'flipbook-creator';
   private ctx: CanvasRenderingContext2D;
-  private image: string;
 
   private animation: boolean = true;
-  private hitboxes: IHitBox[] = [];
   private currentAnimationId: number;
 
   mounted() {
@@ -86,11 +95,13 @@ export default class FlipbookCreator extends Vue {
   }
 
   addFrame() {
-    this.sprites.push({ url: '', id: uuid(), hitbox: null });
+    this.sprites.push({ url: '', id: uuid(), hitboxes: null });
   }
 
-  addHitbox(hitbox: IHitBox) {
-    this.hitboxes.push(hitbox);
+  addHitbox(srpiteId: string, hitboxes: IHitBox[]) {
+    const sprite = this.sprites.find(s => s.id === srpiteId);
+    sprite.hitboxes = hitboxes;
+    this.flipbook.setHitboxesForSprite(sprite.url, hitboxes);
   }
 
   showSpriteByUrl(url: string) {
@@ -174,6 +185,30 @@ export default class FlipbookCreator extends Vue {
       w,
       h,
     );
+  }
+
+  saveFlipbook() {
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    document.body.appendChild(a);
+
+    const blob = new Blob([JSON.stringify(this.sprites)], { type: 'application/json' });
+    a.href = URL.createObjectURL(blob);
+    a.download = `${this.flipbookName}.json` || 'flipbook.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+
+    a.remove();
+  }
+
+  async loadFlipbook() {
+    try {
+      this.sprites = await (await fetch(this.flipbookUrl)).json();
+      await this.onSpitesChanged(this.sprites);
+      this.sprites.forEach(s => this.flipbook.setHitboxesForSprite(s.url, s.hitboxes));
+    } catch (e) {
+      console.error('Invalid flipbook url');
+    }
   }
 }
 </script>
