@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div :class="blockName">
     <div>
       <label>
         Choose sprite
@@ -36,6 +36,8 @@ import { IHitBox } from '@/lib/core/RenderedObject/GameObject/GameObject';
     props: ['sprites', 'flipbook', 'hitboxes'],
   })
 export default class HitboxCreator extends Vue {
+    private blockName: string = 'hitbox-creator';
+
     private chosenSprite: sprite = null;
     private ctx: CanvasRenderingContext2D;
     private canvas: HTMLCanvasElement;
@@ -122,3 +124,10 @@ export default class HitboxCreator extends Vue {
     }
 }
 </script>
+
+<style lang="stylus">
+  .hitbox-creator
+    display flex
+    flex-direction column
+    align-items center
+</style>

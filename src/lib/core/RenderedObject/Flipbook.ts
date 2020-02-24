@@ -128,7 +128,7 @@ export default class Flipbook {
     return this._offscreenCanvas.height;
   }
 
-  getSpriteByUrl(url: string) {
+  getSpriteByUrl(url: string): Sprite | null {
     return this._sprites.find(sprite => sprite.src === url) || null;
   }
 
