@@ -14,7 +14,7 @@ export class LayerCache extends PureCanvas {
 
 export class Layer extends Map<string, IRenderedObject> {
   private _cache: LayerCache = new LayerCache();
-  private _cellSize: { width: number, height: number } = { width: 0, height: 0 };
+  private _cellSize: { width: number, height: number } = { width: 16, height: 16 };
 
   public get isDirty() { return this._cache.isDirty; }
 
@@ -74,7 +74,7 @@ export class Layer extends Map<string, IRenderedObject> {
 
   public resize(width: number, height: number, cellSize: { width: number, height: number }) {
     this._cache.resize(width, height);
-    this._cellSize = cellSize;
+    // this._cellSize = cellSize;
     this.invalidateCache();
   }
 

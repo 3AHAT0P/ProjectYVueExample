@@ -1,17 +1,21 @@
-import Sprite from './Sprite';
+import Sprite, { ISpriteMeta } from './Sprite';
 
 interface IEventHash {
   frameChange: Function[],
 }
 
 interface IFlipbookOptions {
-  spriteURLs: string[];
+  spriteMetaList: ISpriteMeta[];
   frameDuration?: number;
+  waitBefore?: number;
+  waitAfter?: number;
 }
 
 interface IFlipbookMeta {
-  spriteURLs: string[];
+  spriteMetaList: ISpriteMeta[];
   frameDuration: number;
+  waitBefore?: number;
+  waitAfter?: number;
 }
 
 /**
@@ -27,10 +31,12 @@ export default class Flipbook {
     return instance;
   }
 
-  private _spriteUrls: string[] = [];
+  private spriteMetaList: ISpriteMeta[] = [];
   private _sprites: Sprite[] = [];
   private _currentSpriteIndex: number = 0;
 
+  private _waitBeforeFirst: number = 0;
+  private _waitAfterLast: number = 0;
   private _frameDuration: number = 0;
   private _timeOfLastFrameChange: number = null;
 
@@ -43,7 +49,7 @@ export default class Flipbook {
   private async _load() {
     try {
       const promises = [];
-      for (const sourceURL of this._spriteUrls) promises.push(Sprite.create<Sprite>({ sourceURL }));
+      for (const spriteMeta of this.spriteMetaList) promises.push(Sprite.fromMeta<Sprite>(spriteMeta));
       this._sprites = await Promise.all(promises);
     } catch (error) {
       throw new TypeError('Sprites of Flipbook should be an array of image links');
@@ -52,13 +58,19 @@ export default class Flipbook {
 
   private _nextFrame() {
     this._currentSpriteIndex += 1;
-    if (this._currentSpriteIndex >= this._sprites.length) this._currentSpriteIndex = 0;
+    if (this._currentSpriteIndex >= this._sprites.length) {
+      this._currentSpriteIndex = 0;
+      return true;
+    }
+    return false;
   }
 
   public applyOptions(options: IFlipbookOptions) {
-    if (options.spriteURLs == null || options.spriteURLs.length < 1) throw new Error('Sprites are required!');
-    else this._spriteUrls = options.spriteURLs;
+    if (options.spriteMetaList == null || options.spriteMetaList.length < 1) throw new Error('Sprites are required!');
+    else this.spriteMetaList = options.spriteMetaList;
     if (options.frameDuration) this._frameDuration = options.frameDuration;
+    if (options.waitBefore) this._waitBeforeFirst = options.waitBefore;
+    if (options.waitAfter) this._waitAfterLast = options.waitAfter;
   }
 
   public applyMeta(meta: IFlipbookMeta) {
@@ -70,8 +82,12 @@ export default class Flipbook {
   }
 
   public tick(time: number) {
-    if (time - this._timeOfLastFrameChange >= this._frameDuration) {
-      this._nextFrame();
+    if (
+      time - this._timeOfLastFrameChange
+      >= this._frameDuration + (this._currentSpriteIndex === 0 ? this._waitBeforeFirst : 0)
+    ) {
+      this._timeOfLastFrameChange = time;
+      if (this._nextFrame()) this._timeOfLastFrameChange += this._waitAfterLast;
     }
   }
 
@@ -83,8 +99,9 @@ export default class Flipbook {
     this._currentSpriteIndex = 0;
   }
 
-  public mirror() {
-    this._isMirrored = !this._isMirrored;
+  public mirror(value: boolean) {
+    if (this._isMirrored === value) return;
+    this._isMirrored = value;
     for (const sprite of this._sprites) sprite.mirror();
   }
 }

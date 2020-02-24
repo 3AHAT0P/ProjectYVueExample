@@ -1,15 +1,11 @@
 import Flipbook from '@/lib/core/RenderedObject/Sprite/Flipbook';
 import Sprite from '@/lib/core/RenderedObject/Sprite/Sprite';
+import { ICollisionDetectorDelegate } from '@/lib/core/Scene/CollisionDetectorDelegate';
 
 import InteractiveObject from '../InteractiveObject';
 import AnimatedInteractiveObject, { AnimatedInteractiveObjectOptions } from '../AnimatedInteractiveObject';
 
 const ERROR_HELP_TEXT = 'Use Character.create method to create character with a set of sprites';
-
-interface ICollisionDetectorDelegate {
-  inSceneBound(object: InteractiveObject): boolean;
-  checkMoveCollisions(interactiveObject: InteractiveObject, offset: IPoint): IDistanceToObject;
-}
 
 type boolOrCallbackToBool = boolean | ((options: any) => boolean);
 
@@ -35,6 +31,7 @@ class NonDeterminedStateMachine {
   }
 
   public getTransition(prevState: string, nextState: string): boolOrCallbackToBool {
+    if (prevState == null) return true;
     return this._availableTransitions.get(prevState)[nextState];
   }
 
@@ -42,20 +39,20 @@ class NonDeterminedStateMachine {
     const canTransition = this.getTransition(this._state, nextState);
     if (canTransition instanceof Function) {
       if (canTransition(options)) {
-        this._addToHistory(this._state);
         this._state = nextState;
+        this._addToHistory(this._state);
         return true;
       }
     } else if (canTransition) {
-      this._addToHistory(this._state);
       this._state = nextState;
+      this._addToHistory(this._state);
       return true;
     }
     return false;
   }
 }
 
-const transitions = {
+const transitions: Hash<Hash<boolean>> = {
   IDLE: {
     MOVE: true,
     JUMP: true,
@@ -83,7 +80,15 @@ const transitions = {
   },
 };
 
-const controls = {
+const flipbooks: Hash<Flipbook> = {
+  IDLE: null,
+  MOVE: null,
+  JUMP: null,
+  FALL: null,
+  ATTACK: null,
+};
+
+const controls: Hash<[string, Direction]> = {
   ArrowRight: ['MOVE', 'RIGHT'],
   ArrowLeft: ['MOVE', 'LEFT'],
   KeyD: ['MOVE', 'RIGHT'],
@@ -93,20 +98,23 @@ const controls = {
   Space: ['ATTACK', null],
 };
 
-interface StaticInteractiveObjectOptions extends AnimatedInteractiveObjectOptions {
-
+interface CharacterOptions extends AnimatedInteractiveObjectOptions {
+  collisionDetectorDelegate: ICollisionDetectorDelegate;
+  transitions: Hash<Hash<boolean>>;
+  controls: Hash<[string, Direction]>;
+  flipbooks: Hash<Flipbook>;
 }
-
-type Direction = 'LEFT' | 'RIGHT';
 
 const _onKeyDownHandler = Symbol('_onKeyDownHandler');
 const _onKeyUpHandler = Symbol('_onKeyUpHandler');
 
 const DEFAULT_CELL_SIZE = 16;
 
-const MOVING_SPEED = DEFAULT_CELL_SIZE / 2; // Pixels per Second
-const JUMPING_SPEED = DEFAULT_CELL_SIZE / 4; // Pixels per Second
-const FALLING_SPEED = DEFAULT_CELL_SIZE / 4; // Pixels per Second
+const MOVING_SPEED = DEFAULT_CELL_SIZE * 4; // Pixels per Second
+const JUMPING_SPEED = DEFAULT_CELL_SIZE * 4; // Pixels per Second
+const FALLING_SPEED = DEFAULT_CELL_SIZE * 2; // Pixels per Second
+
+const SECOND = 1000.0;
 
 export default class Character extends AnimatedInteractiveObject {
   private _collisionDetector: ICollisionDetectorDelegate = null;
@@ -118,6 +126,8 @@ export default class Character extends AnimatedInteractiveObject {
   private _flipbookMap: Map<string, Flipbook> = null;
   private _controlMap: Map<string, [string, Direction]> = null;
   private _heldControlMap: Map<string, boolean> = null;
+
+  private _offsetError: IPoint = { x: 0, y: 0 };
 
   protected _currentFlipbook: Flipbook = null; // is current flipbook
 
@@ -139,21 +149,27 @@ export default class Character extends AnimatedInteractiveObject {
 
   // @TODO: We do it wrong!
   private _getOffset(time: number): IPoint {
-    const dt = (time - this._timeOfLastRender) / 1000.0;
+    const dt = (time - this._timeOfLastRender) / SECOND;
     const shift = this._getShift();
-    return {
-      x: shift.x * MOVING_SPEED * dt,
-      y: shift.y * JUMPING_SPEED * dt,
+    this._offsetError.x += shift.x * MOVING_SPEED * dt;
+    this._offsetError.y += shift.y * JUMPING_SPEED * dt;
+    const offset = {
+      x: Math.trunc(this._offsetError.x),
+      y: Math.trunc(this._offsetError.y),
     };
+    this._offsetError.x -= offset.x;
+    this._offsetError.y -= offset.y;
+    return offset;
   }
 
   private _doAction(action: string, direction: Direction) {
     if (this._direction !== direction) this._direction = direction;
     if (this._stateMachine.makeTransition(action)) {
-      this._currentFlipbook.stop();
-      this._currentFlipbook.reset();
+      if (this._currentFlipbook != null) this._currentFlipbook.stop();
+      if (this._currentFlipbook != null) this._currentFlipbook.reset();
       this._currentFlipbook = this._flipbookMap.get(this._stateMachine.getState());
-      if (this._direction === 'LEFT') this._currentFlipbook.mirror();
+      if (this._direction === 'LEFT') this._currentFlipbook.mirror(true);
+      else this._currentFlipbook.mirror(false);
     }
   }
 
@@ -184,7 +200,7 @@ export default class Character extends AnimatedInteractiveObject {
     }
   }
 
-  constructor(options: any) {
+  constructor(options: CharacterOptions) {
     super(options);
 
     if (options.collisionDetectorDelegate == null) throw new Error('collisionDetectorDelegate is required option!');
@@ -195,11 +211,14 @@ export default class Character extends AnimatedInteractiveObject {
       new Set(Object.keys(options.transitions)),
       new Map(Object.entries(options.transitions)),
     );
-    this._flipbookMap = new Map(Object.keys(options.transitions).map((item) => [item, null]));
+    if (options.flipbooks == null) throw new Error('flipbooks is required option!');
+    this._flipbookMap = new Map(Object.entries(options.flipbooks));
 
     if (options.controls == null) throw new Error('controls is required option!');
     this._controlMap = new Map(Object.entries(options.controls));
     this._heldControlMap = new Map(Object.keys(options.controls).map((item) => [item, false]));
+
+    this._doAction('IDLE', 'RIGHT');
 
     this[_onKeyDownHandler] = this[_onKeyDownHandler].bind(this);
     this[_onKeyUpHandler] = this[_onKeyUpHandler].bind(this);
@@ -213,19 +232,27 @@ export default class Character extends AnimatedInteractiveObject {
     this._initListeners();
   }
 
-
   /**
    * The main method for rendering a Character. Return current frame of a Character.
    * You can call it any time you want to rerender your scene.
    * Frame will change based on Flipbook settings which you have passed as a argument.
-   * @returns {Image | HTMLCanvasElement}
    */
   render(time: number) {
     const offset = this._getOffset(time);
     this._updatePosition(offset);
     this._timeOfLastRender = time;
 
-    return this._sprite;
+    this._currentFlipbook.tick(time);
+
+    // @FIXME:
+    const diff = 44;
+
+    return {
+      position: this.position,
+      center: { x: this._direction === 'LEFT' ? 128 - diff : diff, y: 0 },
+      source: this._sprite.source,
+      sourceBoundingRect: this._sprite.sourceBoundingRect,
+    };
   }
 
   _updatePosition(offset: IPoint) {
@@ -235,10 +262,10 @@ export default class Character extends AnimatedInteractiveObject {
 
     // if (canMove.down !== 0 && this._stateMachine.getState() !== 'JUMP') this._doAction('FALL', this._direction);
 
-    if (offset.x > 0) this.position.x += Math.min(canMove.right, offset.x);
-    if (offset.x < 0) this.position.x += Math.max(-canMove.left, offset.x);
-    if (offset.y > 0) this.position.y += Math.min(canMove.down, offset.y);
-    if (offset.y < 0) this.position.y += Math.max(-canMove.up, offset.y);
+    if (offset.x > 0) this._position.increaseCoordinate('X', Math.min(canMove.right, offset.x));
+    if (offset.x < 0) this._position.increaseCoordinate('X', Math.max(-canMove.left, offset.x));
+    if (offset.y > 0) this._position.increaseCoordinate('Y', Math.min(canMove.down, offset.y));
+    if (offset.y < 0) this._position.increaseCoordinate('Y', Math.max(-canMove.up, offset.y));
 
     // @TODO:
     // if (this._hooks.onMove instanceof Function) this._hooks.onMove();

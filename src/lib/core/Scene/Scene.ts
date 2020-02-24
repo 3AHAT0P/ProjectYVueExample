@@ -6,16 +6,18 @@ import {
 } from '@/lib/core/Canvas/mixins/tileableCanvas/constants';
 import { RenderedLayers } from '@/lib/core/Canvas/mixins/tileableCanvas/tileableCanvas';
 import Character from '@/lib/core/InteractiveObject/Character/Character';
-import InteractiveObject from '@/lib/core/InteractiveObject/StaticInteractiveObject';
+import InteractiveObject from '@/lib/core/InteractiveObject/InteractiveObject';
 import TileMap from '@/lib/core/TileMap/TileMap';
-import { nextFrame } from '@/lib/core/utils/delayers';
+import { nextFrame, later } from '@/lib/core/utils/delayers';
+
+import { ICollisionDetectorDelegate } from './CollisionDetectorDelegate';
 
 const _onKeyDownHandler = Symbol('_onKeyDownHandler');
 const _onKeyUpHandler = Symbol('_onKeyUpHandler');
 
 type LAYER_INDEX = '-1' | '0' | '1';
 
-const SIZE_MULTIPLIER = 1;
+const SIZE_MULTIPLIER = 2;
 
 enum GameState {
   RUNNING,
@@ -27,7 +29,7 @@ const BROWSER_FRAME_RATE = 60;
 /**
  * @class Scene - The core of a game.
  */
-export default class Scene extends Canvas {
+export default class Scene extends Canvas implements ICollisionDetectorDelegate {
   private _tileMap: TileMap = null;
   private _layers: RenderedLayers = {
     [BACKGROUND_LAYER]: null,
@@ -36,11 +38,14 @@ export default class Scene extends Canvas {
   };
 
   private _interactiveObjects: InteractiveObject[] = [];
+  private _character: Character = null;
 
-  private _state: GameState = GameState.RUNNING;
+  private _state: GameState = GameState.PAUSED;
 
   private _frameRate: number = BROWSER_FRAME_RATE;
   private _currentFrame: number = 0;
+
+  private _firstTimeRender: number = 0;
 
   private [_onKeyDownHandler](event: KeyboardEvent) {
 
@@ -78,6 +83,22 @@ export default class Scene extends Canvas {
     );
   }
 
+  private _renderCharacter(character: Character, time: number) {
+    const {
+      position,
+      source,
+      sourceBoundingRect,
+      center,
+    } = character.render(time);
+    this.drawImage(
+      source,
+      sourceBoundingRect.x, sourceBoundingRect.y,
+      sourceBoundingRect.width, sourceBoundingRect.height,
+      (position.x - center.x) * SIZE_MULTIPLIER, (position.y - center.y) * SIZE_MULTIPLIER,
+      sourceBoundingRect.width * SIZE_MULTIPLIER, sourceBoundingRect.height * SIZE_MULTIPLIER,
+    );
+  }
+
   private _focusCamera(focusedObject: InteractiveObject) {
     const virtualWidth = this.width * SIZE_MULTIPLIER;
     const virtualHeight = this.height * SIZE_MULTIPLIER;
@@ -101,7 +122,7 @@ export default class Scene extends Canvas {
   private _tick(time: number) {
     this._currentFrame += 1;
     if (this._currentFrame >= BROWSER_FRAME_RATE / this._frameRate) {
-      this._render(time);
+      this._render(time - this._firstTimeRender);
       this._currentFrame = 0;
     }
 
@@ -112,11 +133,14 @@ export default class Scene extends Canvas {
   protected _render(time: number) {
     this._applyImageSmoothing();
     this.clear();
-    this._renderLayer(BACKGROUND_LAYER);
-    this._renderLayer(ZERO_LAYER);
-    this._renderInteractiveObjects();
-    // this._focusCamera(this._hero);
-    this._renderLayer(FOREGROUND_LAYER);
+    try {
+      this._renderLayer(BACKGROUND_LAYER);
+      this._renderLayer(ZERO_LAYER);
+      this._renderInteractiveObjects();
+      this._renderCharacter(this._character, time);
+      this._focusCamera(this._character);
+      this._renderLayer(FOREGROUND_LAYER);
+    } catch (e) { console.log('!!!!!!!!!1', e); }
     this._afterRender();
   }
 
@@ -150,11 +174,16 @@ export default class Scene extends Canvas {
 
   public play() {
     this._changeState(GameState.RUNNING);
+    this._firstTimeRender = performance.now();
     nextFrame(this._tick);
   }
 
   public pause() {
     this._changeState(GameState.PAUSED);
+  }
+
+  public addCharacter(character: Character) {
+    this._character = character;
   }
 
   public inSceneBound(object: InteractiveObject) {
@@ -188,6 +217,7 @@ export default class Scene extends Canvas {
       for (const [edges, newEdges] of hitBoxes) {
         const relativePosition = _interactiveObject.getDistanceTo(edges, newEdges);
         if (relativePosition != null) {
+          // if (relativePosition.down === 0) debugger;
           canMove.up = Math.min(canMove.up, relativePosition.up);
           canMove.down = Math.min(canMove.down, relativePosition.down);
           canMove.left = Math.min(canMove.left, relativePosition.left);

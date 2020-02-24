@@ -60,14 +60,39 @@ export default class Sprite extends RenderedObject implements IRenderedObject {
   }
 
   private async _load() {
-    await this._source.fromDataURL(this._sourceURL, false);
+    if (this._sourceURL == null) return;
+    await this._source.fromURL(this._sourceURL, true);
+
+    const hitBox = this.hitBoxes[0];
+    await this._source.ctx.strokeRect(
+      hitBox.from.x,
+      hitBox.from.y,
+      hitBox.to.x - hitBox.from.x,
+      hitBox.to.y - hitBox.from.y,
+    );
   }
 
   public applyOptions(options: ISpriteOptions) {
     super.applyOptions(options);
     if (options.name != null) this._name = options.name;
     if (options.sourceURL != null) this._sourceURL = options.sourceURL;
-    if (options.hitBoxes != null) this._hitBoxes = options.hitBoxes;
+    if (options.hitBoxes != null) {
+      // eslint-disable-next-line object-curly-newline
+      this._hitBoxes = options.hitBoxes.map((hitBox) => {
+        return {
+          id: hitBox.id,
+          from: {
+            x: Number(hitBox.from.x),
+            y: Number(hitBox.from.y),
+          },
+          to: {
+            x: Number(hitBox.to.x),
+            y: Number(hitBox.to.y),
+          },
+          options: hitBox.options,
+        };
+      });
+    }
     this._source.applyOptions({});
     if (options.sourceBoundingRect != null) {
       this._source.resize(options.sourceBoundingRect.width, options.sourceBoundingRect.height);
@@ -79,14 +104,28 @@ export default class Sprite extends RenderedObject implements IRenderedObject {
     if (meta.version !== (this.constructor as any).version) throw new Error('Metadata version mismatch!');
     this._name = meta.name;
     this._sourceURL = meta.sourceURL;
-    this._hitBoxes = meta.hitBoxes;
+    // eslint-disable-next-line object-curly-newline
+    this._hitBoxes = meta.hitBoxes.map((hitBox) => {
+      return {
+        id: hitBox.id,
+        from: {
+          x: Number(hitBox.from.x),
+          y: Number(hitBox.from.y),
+        },
+        to: {
+          x: Number(hitBox.to.x),
+          y: Number(hitBox.to.y),
+        },
+        options: hitBox.options,
+      };
+    });
     this._source.applyOptions({});
     this._source.resize(meta.sourceBoundingRect.width, meta.sourceBoundingRect.height);
   }
 
   public async init(): Promise<void> {
     await super.init();
-    this._load();
+    await this._load();
   }
 
   public appendHitBox(from: IPoint, to: IPoint, options: IHitBoxOptions) {
@@ -110,6 +149,7 @@ export default class Sprite extends RenderedObject implements IRenderedObject {
 
   public mirror() {
     this._isMirrored = !this._isMirrored;
-    this._source.flip('X');
+    // this._source.flip('X', { x: -this._source.width / 4, y: 0 });
+    this._source.flip('X', { x: 0, y: 0 });
   }
 }

@@ -45,6 +45,11 @@ export default class Point implements IPoint {
     this._y = y;
   }
 
+  public increaseCoordinate(coordinate: 'X' | 'Y', value: number) {
+    if (coordinate === 'X') this._x += value;
+    if (coordinate === 'Y') this._y += value;
+  }
+
   public toString() {
     return `${this.x}${DELIMITER}${this.y}`;
   }

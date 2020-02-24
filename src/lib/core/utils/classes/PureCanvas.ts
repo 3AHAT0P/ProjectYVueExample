@@ -82,17 +82,19 @@ export default class PureCanvas {
     this._ctx.restore();
   }
 
-  public async flip(type?: 'X' | 'Y') {
+  public async flip(type?: 'X' | 'Y', offset: IPoint = { x: 0, y: 0 }) {
     const image = await createImageBitmap(this.canvas);
-    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+    this.clear();
     if (type === 'X') {
       this.ctx.scale(-1, 1);
-      this.ctx.drawImage(image, -image.width, 0);
+      this.ctx.drawImage(image, -image.width - offset.x, 0);
     }
     if (type === 'Y') {
       this.ctx.scale(1, -1);
-      this.ctx.drawImage(image, 0, -image.height);
+      this.ctx.drawImage(image, 0, -image.height - offset.y);
     }
+    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+    // this.ctx.strokeRect(0, 0, image.width, image.height);
   }
 
   public clear() {
@@ -100,7 +102,7 @@ export default class PureCanvas {
     this._applyImageSmoothing();
   }
 
-  public async fromDataURL(dataURL: string, getImageSize: boolean = false) {
+  public async fromURL(dataURL: string, getImageSize: boolean = false) {
     const image = await loadImage(dataURL);
     if (getImageSize) this.resize(image.width, image.height);
     this.drawImageFullFilled(image);

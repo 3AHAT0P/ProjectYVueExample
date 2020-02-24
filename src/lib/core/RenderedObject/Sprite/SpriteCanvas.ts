@@ -88,14 +88,15 @@ export default class SpriteCanvas extends BaseClass {
 
     const ctx = this.ctx;
     ctx.save();
-    ctx.strokeStyle = 'hsla(0, 0%, 0%, .6)';
 
+    ctx.strokeStyle = 'hsla(0, 0%, 0%, .6)';
     ctx.strokeRect(
       this._eventDown.offsetX,
       this._eventDown.offsetY,
       this._eventMove.offsetX - this._eventDown.offsetX,
       this._eventMove.offsetY - this._eventDown.offsetY,
     );
+
     ctx.fillStyle = 'hsla(0, 0%, 100%, .2)';
     ctx.fillRect(
       this._eventDown.offsetX,
@@ -103,6 +104,7 @@ export default class SpriteCanvas extends BaseClass {
       this._eventMove.offsetX - this._eventDown.offsetX,
       this._eventMove.offsetY - this._eventDown.offsetY,
     );
+
     ctx.restore();
   }
 
@@ -166,6 +168,7 @@ export default class SpriteCanvas extends BaseClass {
 
     this._drawHitBoxes();
     this._drawCurrentRect();
+    this._afterRender();
   }
 
   constructor() {
