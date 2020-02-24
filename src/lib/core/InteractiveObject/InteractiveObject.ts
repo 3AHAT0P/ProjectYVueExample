@@ -22,32 +22,15 @@ export default abstract class InteractiveObject {
   public get renderedObject(): IRenderedObject { return this._sprite; }
   public get position() { return this._position.toObject(); }
 
-  public get boundingRect(): IBoundingRect {
-    const sourceBoundingRect = this._sprite.sourceBoundingRect;
-    return {
-      x: this._position.x,
-      y: this._position.y,
-      width: sourceBoundingRect.width,
-      height: sourceBoundingRect.height,
-    };
-  }
-
-  public get boundingEdges(): IBoundingEdges {
-    const sourceBoundingRect = this._sprite.sourceBoundingRect;
-    return {
-      left: this._position.x,
-      top: this._position.y,
-      right: this._position.x + sourceBoundingRect.width,
-      bottom: this._position.y + sourceBoundingRect.height,
-    };
-  }
-
   public get hitBoxes(): IBoundingEdges[] {
+    const center = this._sprite.originaLCenter;
+    const x = this._position.x - center.x;
+    const y = this._position.y - center.y;
     return this._sprite.hitBoxes.map((hitBox: HitBox) => ({
-      left: this._position.x + hitBox.from.x,
-      top: this._position.y + hitBox.from.y,
-      right: this._position.x + hitBox.to.x,
-      bottom: this._position.y + hitBox.to.y,
+      left: x + hitBox.from.x,
+      top: y + hitBox.from.y,
+      right: x + hitBox.to.x,
+      bottom: y + hitBox.to.y,
     }));
   }
 
@@ -105,24 +88,30 @@ export default abstract class InteractiveObject {
     for (const hitBox of this.hitBoxes) {
       const relativePosition = this._getRelativePosition(newEdges, hitBox);
 
+      // @TODO:
+      // or if cross through the middle (before ABOVE now BELOW and etc)
       if (relativePosition.x === 'MIDDLE' && relativePosition.y === 'MIDDLE') {
         isIntersected = true;
         const relativePositionBeforeShift = this._getRelativePosition(edges, hitBox);
 
-        if (relativePositionBeforeShift.x === 'LEFT_OF') {
-          distanceTo.left = Math.min(distanceTo.left, edges.left - hitBox.right - 1);
-        } else if (relativePositionBeforeShift.x === 'RIGHT_OF') {
-          distanceTo.right = Math.min(distanceTo.right, hitBox.left - edges.right - 1);
-        } else {
-          distanceTo.left = 0; distanceTo.right = 0;
+        if (relativePositionBeforeShift.y === 'MIDDLE') {
+          if (relativePositionBeforeShift.x === 'LEFT_OF') {
+            distanceTo.left = Math.min(distanceTo.left, edges.left - hitBox.right - 1);
+          } else if (relativePositionBeforeShift.x === 'RIGHT_OF') {
+            distanceTo.right = Math.min(distanceTo.right, hitBox.left - edges.right - 1);
+          } else {
+            distanceTo.left = 0; distanceTo.right = 0;
+          }
         }
 
-        if (relativePositionBeforeShift.y === 'ABOVE') {
-          distanceTo.up = Math.min(distanceTo.up, edges.top - hitBox.bottom - 1);
-        } else if (relativePositionBeforeShift.y === 'BELOW') {
-          distanceTo.down = Math.min(distanceTo.down, hitBox.top - edges.bottom - 1);
-        } else {
-          distanceTo.up = 0; distanceTo.down = 0;
+        if (relativePositionBeforeShift.x === 'MIDDLE') {
+          if (relativePositionBeforeShift.y === 'ABOVE') {
+            distanceTo.up = Math.min(distanceTo.up, edges.top - hitBox.bottom - 1);
+          } else if (relativePositionBeforeShift.y === 'BELOW') {
+            distanceTo.down = Math.min(distanceTo.down, hitBox.top - edges.bottom - 1);
+          } else {
+            distanceTo.up = 0; distanceTo.down = 0;
+          }
         }
       }
     }

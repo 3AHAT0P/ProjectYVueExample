@@ -17,7 +17,7 @@ const _onKeyUpHandler = Symbol('_onKeyUpHandler');
 
 type LAYER_INDEX = '-1' | '0' | '1';
 
-const SIZE_MULTIPLIER = 2;
+const SIZE_MULTIPLIER = 1;
 
 enum GameState {
   RUNNING,

@@ -1,102 +1,9 @@
 import Flipbook from '@/lib/core/RenderedObject/Sprite/Flipbook';
 import Sprite from '@/lib/core/RenderedObject/Sprite/Sprite';
 import { ICollisionDetectorDelegate } from '@/lib/core/Scene/CollisionDetectorDelegate';
+import NonDeterminedStateMachine from '@/lib/core/utils/classes/NonDeterminedStateMachine';
 
-import InteractiveObject from '../InteractiveObject';
 import AnimatedInteractiveObject, { AnimatedInteractiveObjectOptions } from '../AnimatedInteractiveObject';
-
-const ERROR_HELP_TEXT = 'Use Character.create method to create character with a set of sprites';
-
-type boolOrCallbackToBool = boolean | ((options: any) => boolean);
-
-class NonDeterminedStateMachine {
-  private _state: string = null;
-  private _availableStates: Set<string> = new Set();
-  private _availableTransitions: Map<string, Hash<boolOrCallbackToBool>> = new Map();
-  private _stateHistory: string[] = [];
-  private _historyLimit = 10;
-
-  private _addToHistory(state: string) {
-    this._stateHistory.push(state);
-    if (this._stateHistory.length > this._historyLimit) this._stateHistory.shift();
-  }
-
-  constructor(states: Set<string>, transitions: Map<string, Hash<boolOrCallbackToBool>>) {
-    this._availableStates = states;
-    this._availableTransitions = transitions;
-  }
-
-  public getState(offset: number = 0): string {
-    return this._stateHistory[this._stateHistory.length - 1 + offset];
-  }
-
-  public getTransition(prevState: string, nextState: string): boolOrCallbackToBool {
-    if (prevState == null) return true;
-    return this._availableTransitions.get(prevState)[nextState];
-  }
-
-  public makeTransition(nextState: string, options?: any): boolean {
-    const canTransition = this.getTransition(this._state, nextState);
-    if (canTransition instanceof Function) {
-      if (canTransition(options)) {
-        this._state = nextState;
-        this._addToHistory(this._state);
-        return true;
-      }
-    } else if (canTransition) {
-      this._state = nextState;
-      this._addToHistory(this._state);
-      return true;
-    }
-    return false;
-  }
-}
-
-const transitions: Hash<Hash<boolean>> = {
-  IDLE: {
-    MOVE: true,
-    JUMP: true,
-    FALL: true,
-    ATTACK: true,
-  },
-  MOVE: {
-    IDLE: true,
-    JUMP: true,
-    FALL: true,
-    ATTACK: true,
-  },
-  JUMP: {
-    IDLE: true,
-    FALL: true,
-    ATTACK: true,
-  },
-  FALL: {
-    IDLE: true,
-    ATTACK: true,
-  },
-  ATTACK: {
-    IDLE: true,
-    MOVE: true,
-  },
-};
-
-const flipbooks: Hash<Flipbook> = {
-  IDLE: null,
-  MOVE: null,
-  JUMP: null,
-  FALL: null,
-  ATTACK: null,
-};
-
-const controls: Hash<[string, Direction]> = {
-  ArrowRight: ['MOVE', 'RIGHT'],
-  ArrowLeft: ['MOVE', 'LEFT'],
-  KeyD: ['MOVE', 'RIGHT'],
-  KeyA: ['MOVE', 'LEFT'],
-  ArrowUp: ['JUMP', null],
-  KeyW: ['JUMP', null],
-  Space: ['ATTACK', null],
-};
 
 interface CharacterOptions extends AnimatedInteractiveObjectOptions {
   collisionDetectorDelegate: ICollisionDetectorDelegate;
@@ -110,12 +17,14 @@ const _onKeyUpHandler = Symbol('_onKeyUpHandler');
 
 const DEFAULT_CELL_SIZE = 16;
 
-const MOVING_SPEED = DEFAULT_CELL_SIZE * 4; // Pixels per Second
-const JUMPING_SPEED = DEFAULT_CELL_SIZE * 4; // Pixels per Second
-const FALLING_SPEED = DEFAULT_CELL_SIZE * 2; // Pixels per Second
+const MOVING_SPEED = DEFAULT_CELL_SIZE * 8; // Pixels per Second
+const JUMPING_SPEED = DEFAULT_CELL_SIZE * 10; // Pixels per Second
+const FALLING_SPEED = DEFAULT_CELL_SIZE * 10; // Pixels per Second
+const MAX_JUMP_HEIGHT = DEFAULT_CELL_SIZE * 7;
 
 const SECOND = 1000.0;
 
+// @FIXME: We need one place for control change of actions
 export default class Character extends AnimatedInteractiveObject {
   private _collisionDetector: ICollisionDetectorDelegate = null;
   private _stateMachine: NonDeterminedStateMachine = null;
@@ -128,6 +37,7 @@ export default class Character extends AnimatedInteractiveObject {
   private _heldControlMap: Map<string, boolean> = null;
 
   private _offsetError: IPoint = { x: 0, y: 0 };
+  private currentJumpHeight: number = 0;
 
   protected _currentFlipbook: Flipbook = null; // is current flipbook
 
@@ -141,8 +51,8 @@ export default class Character extends AnimatedInteractiveObject {
     };
     if (this._heldControlMap.get('ArrowRight') || this._heldControlMap.get('KeyD')) shift.x = 1;
     if (this._heldControlMap.get('ArrowLeft') || this._heldControlMap.get('KeyA')) shift.x = -1;
-    if (this._heldControlMap.get('ArrowUp') || this._heldControlMap.get('KeyW')) shift.y = -1;
-    if (this._stateMachine.getState() === 'FALL' || this._stateMachine.getState() === 'IDLE') shift.y = 1;
+    if (this._stateMachine.getState() === 'JUMP') shift.y = -1;
+    else shift.y = 1;
 
     return shift;
   }
@@ -151,8 +61,11 @@ export default class Character extends AnimatedInteractiveObject {
   private _getOffset(time: number): IPoint {
     const dt = (time - this._timeOfLastRender) / SECOND;
     const shift = this._getShift();
+
     this._offsetError.x += shift.x * MOVING_SPEED * dt;
-    this._offsetError.y += shift.y * JUMPING_SPEED * dt;
+    if (shift.y < 0) this._offsetError.y += shift.y * JUMPING_SPEED * dt;
+    else this._offsetError.y += shift.y * FALLING_SPEED * dt;
+
     const offset = {
       x: Math.trunc(this._offsetError.x),
       y: Math.trunc(this._offsetError.y),
@@ -162,15 +75,26 @@ export default class Character extends AnimatedInteractiveObject {
     return offset;
   }
 
-  private _doAction(action: string, direction: Direction) {
+  private _updateDirection(direction: Direction) {
     if (this._direction !== direction) this._direction = direction;
+    if (this._direction === 'LEFT') {
+      this._currentFlipbook.mirror(true);
+    } else {
+      this._currentFlipbook.mirror(false);
+    }
+  }
+
+  private _doAction(action: string, direction: Direction) {
+    if (this._stateMachine.getState() === 'FALL' && action !== 'IDLE') {
+      this._updateDirection(direction);
+      return;
+    }
     if (this._stateMachine.makeTransition(action)) {
       if (this._currentFlipbook != null) this._currentFlipbook.stop();
       if (this._currentFlipbook != null) this._currentFlipbook.reset();
       this._currentFlipbook = this._flipbookMap.get(this._stateMachine.getState());
-      if (this._direction === 'LEFT') this._currentFlipbook.mirror(true);
-      else this._currentFlipbook.mirror(false);
     }
+    this._updateDirection(direction);
   }
 
   private _initListeners() {
@@ -196,7 +120,18 @@ export default class Character extends AnimatedInteractiveObject {
     if (this._controlMap.has(event.code)) {
       this._heldControlMap.set(event.code, false);
       const [action, direction] = this._controlMap.get(event.code);
-      if (action === this._stateMachine.getState()) this._doAction('IDLE', this._direction);
+      // @FIXME:
+      if (action === 'JUMP') this._doAction('FALL', this._direction);
+      else if (action === this._stateMachine.getState()) {
+        if (
+          this._heldControlMap.get('ArrowRight')
+          && this._heldControlMap.get('KeyD')
+          && this._heldControlMap.get('ArrowLeft')
+          && this._heldControlMap.get('KeyA')
+        ) {
+          this._doAction('MOVE', this._direction);
+        } else this._doAction('IDLE', this._direction);
+      }
     }
   }
 
@@ -244,12 +179,9 @@ export default class Character extends AnimatedInteractiveObject {
 
     this._currentFlipbook.tick(time);
 
-    // @FIXME:
-    const diff = 44;
-
     return {
       position: this.position,
-      center: { x: this._direction === 'LEFT' ? 128 - diff : diff, y: 0 },
+      center: this._sprite.center,
       source: this._sprite.source,
       sourceBoundingRect: this._sprite.sourceBoundingRect,
     };
@@ -260,7 +192,17 @@ export default class Character extends AnimatedInteractiveObject {
 
     const canMove = this._collisionDetector.checkMoveCollisions(this, offset);
 
-    // if (canMove.down !== 0 && this._stateMachine.getState() !== 'JUMP') this._doAction('FALL', this._direction);
+    if (canMove.down !== 0 && offset.y > 0 && this._stateMachine.getState() !== 'FALL') {
+      this._doAction('FALL', this._direction);
+    } else if (canMove.down === 0 && this._stateMachine.getState() === 'FALL') {
+      this._doAction('IDLE', this._direction);
+    }
+
+    if (this._stateMachine.getState() === 'JUMP') this.currentJumpHeight += Math.min(canMove.up, offset.y);
+    if (-this.currentJumpHeight >= MAX_JUMP_HEIGHT) {
+      this.currentJumpHeight = 0;
+      this._doAction('FALL', this._direction);
+    }
 
     if (offset.x > 0) this._position.increaseCoordinate('X', Math.min(canMove.right, offset.x));
     if (offset.x < 0) this._position.increaseCoordinate('X', Math.max(-canMove.left, offset.x));
@@ -278,28 +220,4 @@ export default class Character extends AnimatedInteractiveObject {
     //   if (this._hooks.onDamage instanceof Function) this._hooks.onDamage();
     // }
   }
-
-  // @TODO:
-  // _setOnChangeJumpFrame() {
-  //   const onChangeHandler = (frameNumber: number, frameCount: number) => {
-  //     const middleFrameNumber = Math.ceil(frameCount / 2);
-  //     if (frameNumber > 1 && frameNumber < middleFrameNumber) this._jumpDirection = 'UP';
-  //     if (frameNumber > middleFrameNumber && frameNumber < frameCount) {
-  //       this._jumpDirection = 'DOWN';
-  //     }
-  //     if (frameNumber === frameCount) {
-  //       this.actionType = this._prevActionType;
-  //     }
-  //   };
-  //   const catchEndJumping = (frameNumber: number, frameCount: number) => {
-  //     if (frameNumber === frameCount) {
-  //       this._jumping = false;
-  //       this.stop();
-  //     }
-  //   };
-  //   this.jumpSettings.jumpLeftFlipbook.on('frameChange', onChangeHandler);
-  //   this.jumpSettings.jumpLeftFlipbook.on('frameChange', catchEndJumping);
-  //   this.jumpSettings.jumpRightFlipbook.on('frameChange', onChangeHandler);
-  //   this.jumpSettings.jumpRightFlipbook.on('frameChange', catchEndJumping);
-  // }
 }

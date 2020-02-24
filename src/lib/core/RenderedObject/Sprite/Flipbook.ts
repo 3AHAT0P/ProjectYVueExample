@@ -9,6 +9,7 @@ interface IFlipbookOptions {
   frameDuration?: number;
   waitBefore?: number;
   waitAfter?: number;
+  repeat?: boolean;
 }
 
 interface IFlipbookMeta {
@@ -16,6 +17,7 @@ interface IFlipbookMeta {
   frameDuration: number;
   waitBefore?: number;
   waitAfter?: number;
+  repeat?: boolean;
 }
 
 /**
@@ -41,6 +43,7 @@ export default class Flipbook {
   private _timeOfLastFrameChange: number = null;
 
   private _isMirrored: boolean = false;
+  private _isRepeated: boolean = true;
 
   public get currentSprite(): Sprite {
     return this._sprites[this._currentSpriteIndex];
@@ -57,8 +60,8 @@ export default class Flipbook {
   }
 
   private _nextFrame() {
-    this._currentSpriteIndex += 1;
-    if (this._currentSpriteIndex >= this._sprites.length) {
+    if (this._currentSpriteIndex < this._sprites.length - 1) this._currentSpriteIndex += 1;
+    else if (this._isRepeated) {
       this._currentSpriteIndex = 0;
       return true;
     }
@@ -68,9 +71,10 @@ export default class Flipbook {
   public applyOptions(options: IFlipbookOptions) {
     if (options.spriteMetaList == null || options.spriteMetaList.length < 1) throw new Error('Sprites are required!');
     else this.spriteMetaList = options.spriteMetaList;
-    if (options.frameDuration) this._frameDuration = options.frameDuration;
-    if (options.waitBefore) this._waitBeforeFirst = options.waitBefore;
-    if (options.waitAfter) this._waitAfterLast = options.waitAfter;
+    if (options.frameDuration != null) this._frameDuration = options.frameDuration;
+    if (options.waitBefore != null) this._waitBeforeFirst = options.waitBefore;
+    if (options.waitAfter != null) this._waitAfterLast = options.waitAfter;
+    if (options.repeat != null) this._isRepeated = options.repeat;
   }
 
   public applyMeta(meta: IFlipbookMeta) {
@@ -78,7 +82,7 @@ export default class Flipbook {
   }
 
   public async init(): Promise<void> {
-    this._load();
+    await this._load();
   }
 
   public tick(time: number) {

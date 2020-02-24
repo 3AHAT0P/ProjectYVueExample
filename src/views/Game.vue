@@ -77,13 +77,18 @@ export default class Game extends Vue {
         },
         to: {
           x: 60,
-          y: 109,
+          y: 108,
         },
         options: {
           color: 168,
         },
       },
     ];
+
+    const center = {
+      x: 43.5,
+      y: 0,
+    };
 
     const name = 'KnightSprite';
     const version = '0.1.0';
@@ -97,6 +102,7 @@ export default class Game extends Vue {
           hitBoxes,
           name,
           version,
+          center,
         },
         {
           id: uuid(),
@@ -105,6 +111,7 @@ export default class Game extends Vue {
           hitBoxes,
           name,
           version,
+          center,
         },
         {
           id: uuid(),
@@ -113,6 +120,7 @@ export default class Game extends Vue {
           hitBoxes,
           name,
           version,
+          center,
         },
         {
           id: uuid(),
@@ -121,6 +129,7 @@ export default class Game extends Vue {
           hitBoxes,
           name,
           version,
+          center,
         },
         {
           id: uuid(),
@@ -129,6 +138,7 @@ export default class Game extends Vue {
           hitBoxes,
           name,
           version,
+          center,
         },
         {
           id: uuid(),
@@ -137,6 +147,7 @@ export default class Game extends Vue {
           hitBoxes,
           name,
           version,
+          center,
         },
         {
           id: uuid(),
@@ -145,6 +156,7 @@ export default class Game extends Vue {
           hitBoxes,
           name,
           version,
+          center,
         },
         {
           id: uuid(),
@@ -153,6 +165,7 @@ export default class Game extends Vue {
           hitBoxes,
           name,
           version,
+          center,
         },
       ],
       frameDuration: 128,
@@ -167,6 +180,7 @@ export default class Game extends Vue {
           hitBoxes,
           name,
           version,
+          center,
         },
         {
           id: uuid(),
@@ -175,6 +189,7 @@ export default class Game extends Vue {
           hitBoxes,
           name,
           version,
+          center,
         },
         {
           id: uuid(),
@@ -183,41 +198,11 @@ export default class Game extends Vue {
           hitBoxes,
           name,
           version,
-        },
-        {
-          id: uuid(),
-          sourceURL: './sources/PNG/Knight/Jump/jump4.png',
-          sourceBoundingRect,
-          hitBoxes,
-          name,
-          version,
-        },
-        {
-          id: uuid(),
-          sourceURL: './sources/PNG/Knight/Jump/jump5.png',
-          sourceBoundingRect,
-          hitBoxes,
-          name,
-          version,
-        },
-        {
-          id: uuid(),
-          sourceURL: './sources/PNG/Knight/Jump/jump6.png',
-          sourceBoundingRect,
-          hitBoxes,
-          name,
-          version,
-        },
-        {
-          id: uuid(),
-          sourceURL: './sources/PNG/Knight/Jump/jump7.png',
-          sourceBoundingRect,
-          hitBoxes,
-          name,
-          version,
+          center,
         },
       ],
       frameDuration: 128,
+      repeat: false,
     });
 
     const attackFlipbook = await Flipbook.create({
@@ -229,6 +214,7 @@ export default class Game extends Vue {
           hitBoxes,
           name,
           version,
+          center,
         },
         {
           id: uuid(),
@@ -237,6 +223,7 @@ export default class Game extends Vue {
           hitBoxes,
           name,
           version,
+          center,
         },
         {
           id: uuid(),
@@ -245,6 +232,7 @@ export default class Game extends Vue {
           hitBoxes,
           name,
           version,
+          center,
         },
         {
           id: uuid(),
@@ -253,9 +241,55 @@ export default class Game extends Vue {
           hitBoxes,
           name,
           version,
+          center,
         },
       ],
       frameDuration: 128,
+    });
+
+    const fallFlipbook = await Flipbook.create({
+      spriteMetaList: [
+        {
+          id: uuid(),
+          sourceURL: './sources/PNG/Knight/Jump/jump4.png',
+          sourceBoundingRect,
+          hitBoxes,
+          name,
+          version,
+          center,
+        },
+        {
+          id: uuid(),
+          sourceURL: './sources/PNG/Knight/Jump/jump5.png',
+          sourceBoundingRect,
+          hitBoxes,
+          name,
+          version,
+          center,
+        },
+        {
+          id: uuid(),
+          sourceURL: './sources/PNG/Knight/Jump/jump6.png',
+          sourceBoundingRect,
+          hitBoxes,
+          name,
+          version,
+          center,
+        },
+        {
+          id: uuid(),
+          sourceURL: './sources/PNG/Knight/Jump/jump7.png',
+          sourceBoundingRect,
+          hitBoxes,
+          name,
+          version,
+          center,
+        },
+      ],
+      frameDuration: 128,
+      waitBefore: 2500,
+      waitAfter: 2500,
+      repeat: false,
     });
 
     const idleFlipbook = await Flipbook.create({
@@ -267,6 +301,7 @@ export default class Game extends Vue {
           hitBoxes,
           name,
           version,
+          center,
         },
         {
           id: uuid(),
@@ -275,6 +310,7 @@ export default class Game extends Vue {
           hitBoxes,
           name,
           version,
+          center,
         },
         {
           id: uuid(),
@@ -283,6 +319,7 @@ export default class Game extends Vue {
           hitBoxes,
           name,
           version,
+          center,
         },
         {
           id: uuid(),
@@ -291,6 +328,7 @@ export default class Game extends Vue {
           hitBoxes,
           name,
           version,
+          center,
         },
         {
           id: uuid(),
@@ -299,6 +337,7 @@ export default class Game extends Vue {
           hitBoxes,
           name,
           version,
+          center,
         },
         {
           id: uuid(),
@@ -307,6 +346,7 @@ export default class Game extends Vue {
           hitBoxes,
           name,
           version,
+          center,
         },
         {
           id: uuid(),
@@ -315,6 +355,7 @@ export default class Game extends Vue {
           hitBoxes,
           name,
           version,
+          center,
         },
         {
           id: uuid(),
@@ -323,6 +364,7 @@ export default class Game extends Vue {
           hitBoxes,
           name,
           version,
+          center,
         },
         {
           id: uuid(),
@@ -331,6 +373,7 @@ export default class Game extends Vue {
           hitBoxes,
           name,
           version,
+          center,
         },
         {
           id: uuid(),
@@ -339,6 +382,7 @@ export default class Game extends Vue {
           hitBoxes,
           name,
           version,
+          center,
         },
         {
           id: uuid(),
@@ -347,6 +391,7 @@ export default class Game extends Vue {
           hitBoxes,
           name,
           version,
+          center,
         },
         {
           id: uuid(),
@@ -355,6 +400,7 @@ export default class Game extends Vue {
           hitBoxes,
           name,
           version,
+          center,
         },
       ],
       frameDuration: 128,
@@ -394,7 +440,7 @@ export default class Game extends Vue {
       IDLE: idleFlipbook,
       MOVE: moveFlipbook,
       JUMP: jumpFlipbook,
-      FALL: jumpFlipbook,
+      FALL: fallFlipbook,
       ATTACK: attackFlipbook,
     };
 
