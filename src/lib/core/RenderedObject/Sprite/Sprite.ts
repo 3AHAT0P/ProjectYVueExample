@@ -149,18 +149,24 @@ export default class Sprite extends RenderedObject implements IRenderedObject {
     await this._load();
   }
 
-  public appendHitBox(from: IPoint, to: IPoint, options: IHitBoxOptions) {
-    this._hitBoxes.push({
+  public appendHitBox(from: IPoint, to: IPoint, options?: IHitBoxOptions) {
+    const hitBox: HitBox = {
       id: this._hitBoxes.length,
       from,
       to,
-      options,
-    });
+    };
+
+    if (options) hitBox.options = options;
+    this._hitBoxes.push(hitBox);
+  }
+
+  public clearHitBoxes(): void {
+    this._hitBoxes = [];
   }
 
   public clear() {
     this._source.clear();
-    this._hitBoxes = [];
+    this.clearHitBoxes();
   }
 
   public drawImage(image: CanvasImageSource) {

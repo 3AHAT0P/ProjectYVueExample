@@ -108,4 +108,9 @@ export default class Flipbook {
     this._isMirrored = value;
     for (const sprite of this._sprites) sprite.mirror();
   }
+
+  public getSpriteByIndex(index: number): Sprite {
+    if (index != null) return this._sprites[index];
+    return null;
+  }
 }
