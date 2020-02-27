@@ -12,7 +12,27 @@
       <button @click="saveHitbox">Save Hitboxes for the sprite</button>
       <button @click="resetHitbox">Reset Hitboxes for the sprite</button>
     </div>
-    <canvas ref="hitboxCreator"></canvas>
+    <div>
+      <div>
+        <label>
+          Top
+          <input type="number" v-model="hitbox.from.y">
+        </label>
+        <label>
+          Right
+          <input type="number" v-model="hitbox.to.x">
+        </label>
+        <label>
+          Bottom
+          <input type="number" v-model="hitbox.to.y">
+        </label>
+        <label>
+          Left
+          <input type="number" v-model="hitbox.from.x">
+        </label>
+      </div>
+      <canvas ref="hitboxCreator"></canvas>
+    </div>
     <div>
       <span>Hitboxes</span>
       <p>
@@ -45,7 +65,7 @@ export default class HitboxCreator extends Vue {
     private startPoint: { x: number; y: number };
     private mousedown: boolean;
     private hitboxes: IHitBox[] = [];
-    private hitbox: IHitBox;
+    private hitbox: IHitBox = { id: Date.now(), from: { x: 0, y: 0 }, to: { x: 0, y: 0 } };
     private flipbook: IFlipbook;
 
     mounted() {
@@ -62,7 +82,7 @@ export default class HitboxCreator extends Vue {
 
     resetHitbox() {
       this.hitboxes = [];
-      this.hitbox = null;
+      this.hitbox = { id: Date.now(), from: { x: 0, y: 0 }, to: { x: 0, y: 0 } };
       this.showChosenSprite();
     }
 
@@ -90,6 +110,14 @@ export default class HitboxCreator extends Vue {
       this.drawSpriteHitboxes(sprite.hitBoxes);
     }
 
+    @Watch('hitbox', {
+      deep: true,
+    })
+    protected redrawHitBox() {
+      this.showChosenSprite();
+      this.drawHitbox(this.hitbox);
+    }
+
     initDrawListeners() {
       this.canvas.addEventListener('mousedown', this.onMouseDown.bind(this));
       this.canvas.addEventListener('mouseup', this.onMouseUp.bind(this));
@@ -105,7 +133,6 @@ export default class HitboxCreator extends Vue {
     onMouseUp() {
       this.mousedown = false;
       this.hitboxes.push(this.hitbox);
-      this.hitbox = null;
     }
 
     onMouseMove(e: MouseEvent) {
@@ -113,15 +140,6 @@ export default class HitboxCreator extends Vue {
         const { offsetX, offsetY } = e;
         const { x, y } = this.startPoint;
         this.showChosenSprite();
-
-        this.ctx.beginPath();
-        const width = offsetX - x;
-        const height = offsetY - y;
-        this.ctx.rect(x, y, width, height);
-        this.ctx.strokeStyle = 'blue';
-        this.ctx.lineWidth = 1;
-        this.ctx.stroke();
-
         this.hitbox = { id: Date.now(), from: { x, y }, to: { x: offsetX, y: offsetY } };
       }
     }
