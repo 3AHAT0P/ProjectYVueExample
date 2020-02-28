@@ -59,6 +59,8 @@
 
 <script lang="ts">
 import { Component, Vue, Watch } from 'vue-property-decorator';
+
+// @ts-ignore
 import * as draggable from 'vuedraggable';
 
 import { uuid } from '@/utils';

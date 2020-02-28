@@ -146,6 +146,7 @@ export default class Sprite extends RenderedObject implements IRenderedObject {
 
   public async init(): Promise<void> {
     await super.init();
+    await this._source.init();
     await this._load();
   }
 

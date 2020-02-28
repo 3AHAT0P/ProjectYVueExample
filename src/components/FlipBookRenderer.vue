@@ -30,7 +30,7 @@ export default class FlipBookRenderer extends Vue {
     private currentAnimationId: number;
 
     mounted() {
-      this.ctx = this.$refs.renderer.getContext('2d');
+      this.ctx = (this.$refs.renderer as HTMLCanvasElement).getContext('2d');
     }
 
     private startAnimation() {
@@ -57,7 +57,7 @@ export default class FlipBookRenderer extends Vue {
 
     renderSprite(source: CanvasImageSource) {
       const { width: w, height: h } = source;
-      const { width, height } = this.$refs.renderer;
+      const { width, height } = this.$refs.renderer as HTMLCanvasElement;
 
       this.ctx.clearRect(0, 0, width, height);
       this.ctx.drawImage(

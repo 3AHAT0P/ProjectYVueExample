@@ -45,6 +45,7 @@
 <script lang="ts">
 import { Component, Vue, Watch } from 'vue-property-decorator';
 import { IHitBox } from '@/lib/core/HitBox/HitBox';
+import Flipbook from '@/lib/core/RenderedObject/Sprite/Flipbook';
 
   type sprite = {
     url: string;
@@ -66,11 +67,11 @@ export default class HitboxCreator extends Vue {
     private mousedown: boolean;
     private hitboxes: IHitBox[] = [];
     private hitbox: IHitBox = { id: Date.now(), from: { x: 0, y: 0 }, to: { x: 0, y: 0 } };
-    private flipbook: IFlipbook;
+    private flipbook: Flipbook;
 
     mounted() {
-      this.canvas = this.$refs.hitboxCreator;
-      this.ctx = this.$refs.hitboxCreator.getContext('2d');
+      this.canvas = this.$refs.hitboxCreator as HTMLCanvasElement;
+      this.ctx = (this.$refs.hitboxCreator as HTMLCanvasElement).getContext('2d');
 
       this.initDrawListeners();
     }

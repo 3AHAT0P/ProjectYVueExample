@@ -1,6 +1,6 @@
 import InteractiveObject from '@/lib/core/InteractiveObject/InteractiveObject';
 
 export interface ICollisionDetectorDelegate {
-  inSceneBound(object: InteractiveObject): boolean;
+  getDistanceToSceneBoundary(object: InteractiveObject): IDistanceToObject;
   checkMoveCollisions(interactiveObject: InteractiveObject, offset: IPoint): IDistanceToObject;
 }

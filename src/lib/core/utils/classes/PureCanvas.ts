@@ -83,6 +83,7 @@ export default class PureCanvas {
   }
 
   public async flip(type?: 'X' | 'Y', offset: IPoint = { x: 0, y: 0 }) {
+    // @FIXME: That await generate blinks when image is fliping.
     const image = await createImageBitmap(this.canvas);
     this.clear();
     if (type === 'X') {
@@ -94,7 +95,6 @@ export default class PureCanvas {
       this.ctx.drawImage(image, 0, -image.height - offset.y);
     }
     this.ctx.setTransform(1, 0, 0, 1, 0, 0);
-    // this.ctx.strokeRect(0, 0, image.width, image.height);
   }
 
   public clear() {

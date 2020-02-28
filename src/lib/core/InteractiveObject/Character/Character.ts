@@ -37,7 +37,7 @@ export default class Character extends AnimatedInteractiveObject {
   private _heldControlMap: Map<string, boolean> = null;
 
   private _offsetError: IPoint = { x: 0, y: 0 };
-  private currentJumpHeight: number = 0;
+  private _currentJumpHeight: number = 0;
 
   protected _currentFlipbook: Flipbook = null; // is current flipbook
 
@@ -188,36 +188,36 @@ export default class Character extends AnimatedInteractiveObject {
   }
 
   _updatePosition(offset: IPoint) {
-    if (!this._collisionDetector.inSceneBound(this)) return;
+    let { x, y } = offset;
 
-    const canMove = this._collisionDetector.checkMoveCollisions(this, offset);
+    const distanceToSceneBoundary = this._collisionDetector.getDistanceToSceneBoundary(this);
+    if (x > 0) x = Math.min(distanceToSceneBoundary.right, x);
+    else x = -Math.min(distanceToSceneBoundary.left, -x);
+    if (y > 0) y = Math.min(distanceToSceneBoundary.down, y);
+    else y = -Math.min(distanceToSceneBoundary.up, -y);
 
-    if (canMove.down !== 0 && offset.y > 0 && this._stateMachine.getState() !== 'FALL') {
+    const distanceToNearestObject = this._collisionDetector.checkMoveCollisions(this, offset);
+    if (x > 0) x = Math.min(distanceToNearestObject.right, x);
+    else x = -Math.min(distanceToNearestObject.left, -x);
+    if (y > 0) y = Math.min(distanceToNearestObject.down, y);
+    else y = -Math.min(distanceToNearestObject.up, -y);
+
+    if (
+      (y !== 0 && offset.y > 0 && this._stateMachine.getState() !== 'FALL')
+      || (y === 0 && this._stateMachine.getState() === 'JUMP')
+    ) {
       this._doAction('FALL', this._direction);
-    } else if (canMove.down === 0 && this._stateMachine.getState() === 'FALL') {
+    } else if (y === 0 && this._stateMachine.getState() === 'FALL') {
       this._doAction('IDLE', this._direction);
     }
 
-    if (this._stateMachine.getState() === 'JUMP') this.currentJumpHeight += Math.min(canMove.up, offset.y);
-    if (-this.currentJumpHeight >= MAX_JUMP_HEIGHT) {
-      this.currentJumpHeight = 0;
+    if (y < 0 && this._stateMachine.getState() === 'JUMP') this._currentJumpHeight += -y;
+    if (this._currentJumpHeight >= MAX_JUMP_HEIGHT) {
+      this._currentJumpHeight = 0;
       this._doAction('FALL', this._direction);
     }
 
-    if (offset.x > 0) this._position.increaseCoordinate('X', Math.min(canMove.right, offset.x));
-    if (offset.x < 0) this._position.increaseCoordinate('X', Math.max(-canMove.left, offset.x));
-    if (offset.y > 0) this._position.increaseCoordinate('Y', Math.min(canMove.down, offset.y));
-    if (offset.y < 0) this._position.increaseCoordinate('Y', Math.max(-canMove.up, offset.y));
-
-    // @TODO:
-    // if (this._hooks.onMove instanceof Function) this._hooks.onMove();
-
-    // const isDamageReceived = this.mainSettings.hitBoxes.some(hitBox => {
-    //   return this._coreElement.checkDamageCollisions(this.position, hitBox);
-    // });
-
-    // if (isDamageReceived) {
-    //   if (this._hooks.onDamage instanceof Function) this._hooks.onDamage();
-    // }
+    if (x !== 0) this._position.increaseCoordinate('X', x);
+    if (y !== 0) this._position.increaseCoordinate('Y', y);
   }
 }

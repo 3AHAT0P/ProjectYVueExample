@@ -186,13 +186,29 @@ export default class Scene extends Canvas implements ICollisionDetectorDelegate 
     this._character = character;
   }
 
-  public inSceneBound(object: InteractiveObject) {
+  public getDistanceToSceneBoundary(object: InteractiveObject): IDistanceToObject {
     const hitBoxes = object.hitBoxes;
 
+    const distanceToBorder = {
+      up: Infinity,
+      down: Infinity,
+      left: Infinity,
+      right: Infinity,
+    };
+
     for (const hitBox of hitBoxes) {
-      if (hitBox.left < 0 || hitBox.right > this.width || hitBox.top < 0 || hitBox.bottom > this.height) return false;
+      distanceToBorder.up = Math.min(distanceToBorder.up, hitBox.top);
+      distanceToBorder.down = Math.min(distanceToBorder.down, this.height - hitBox.bottom);
+      distanceToBorder.left = Math.min(distanceToBorder.left, hitBox.left);
+      distanceToBorder.right = Math.min(distanceToBorder.right, this.width - hitBox.right);
     }
-    return true;
+
+    if (distanceToBorder.up < 0) distanceToBorder.up = 0;
+    if (distanceToBorder.down < 0) distanceToBorder.down = 0;
+    if (distanceToBorder.left < 0) distanceToBorder.left = 0;
+    if (distanceToBorder.right < 0) distanceToBorder.right = 0;
+
+    return distanceToBorder;
   }
 
   /**
