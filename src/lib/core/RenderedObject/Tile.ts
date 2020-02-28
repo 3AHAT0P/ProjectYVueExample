@@ -7,17 +7,19 @@ export interface ITileMeta extends IRenderedObjectMeta {
 }
 
 export default class Tile extends RenderedObject implements IRenderedObject {
-  public static fromMeta(meta: ITileMeta, source: CanvasImageSource = null) {
-    const instance = new this({
+  public static async fromMeta<T extends RenderedObject = Tile>(
+    meta: IRenderedObjectMeta,
+    source: CanvasImageSource = null,
+  ) {
+    return super.fromMeta<T>({
       ...meta,
       source,
     });
-    return instance;
   }
 
   private _source: CanvasImageSource = null;
   private _sourceURL: string = null;
-  private _sourceBoundingRect: ISourceBoundingRect = {
+  private _sourceBoundingRect: IBoundingRect = {
     x: 0,
     y: 0,
     width: 0,
@@ -37,8 +39,8 @@ export default class Tile extends RenderedObject implements IRenderedObject {
     };
   }
 
-  constructor(options: ITileOptions = {}) {
-    super(options);
+  public applyOptions(options: ITileOptions) {
+    super.applyOptions(options);
     if (options.source != null) this._source = options.source;
     if (options.sourceURL != null) this._sourceURL = options.sourceURL;
 
@@ -48,6 +50,17 @@ export default class Tile extends RenderedObject implements IRenderedObject {
       this._sourceBoundingRect.width = options.sourceBoundingRect.width;
       this._sourceBoundingRect.height = options.sourceBoundingRect.height;
     }
+  }
+
+  public applyMeta(meta: ITileMeta) {
+    super.applyOptions(meta);
+    this._source = meta.source;
+    this._sourceURL = meta.sourceURL;
+
+    this._sourceBoundingRect.x = meta.sourceBoundingRect.x;
+    this._sourceBoundingRect.y = meta.sourceBoundingRect.y;
+    this._sourceBoundingRect.width = meta.sourceBoundingRect.width;
+    this._sourceBoundingRect.height = meta.sourceBoundingRect.height;
   }
 
   // @TODO: Tile should load own source, but we should use cache for loaded images

@@ -4,20 +4,30 @@ export interface IRenderedObjectOptions {
   id?: string;
   source?: CanvasImageSource;
   sourceURL?: string;
-  sourceBoundingRect?: ISourceBoundingRect;
+  sourceBoundingRect?: IBoundingRect;
 }
 
 export interface IRenderedObjectMeta extends IRenderedObjectOptions {
   id: string;
   sourceURL: string;
-  sourceBoundingRect: ISourceBoundingRect;
+  sourceBoundingRect: IBoundingRect;
 }
 
 export default abstract class RenderedObject implements IRenderedObject {
-  public static fromMeta(meta: IRenderedObjectMeta): any {
-    if (this === RenderedObject) throw new Error('It\'s abstract method!');
+  public static async create<T extends RenderedObject>(options: IRenderedObjectOptions): Promise<T> {
+    if (this === RenderedObject) throw new Error('It\'s abstract class!');
     // @ts-ignore
-    const instance = new this(meta);
+    const instance = new this();
+    instance.applyOptions(options);
+    await instance.init();
+    return instance;
+  }
+  public static async fromMeta<T extends RenderedObject>(meta: IRenderedObjectMeta): Promise<T> {
+    if (this === RenderedObject) throw new Error('It\'s abstract class!');
+    // @ts-ignore
+    const instance = new this();
+    instance.applyMeta(meta);
+    await instance.init();
     return instance;
   }
 
@@ -27,7 +37,7 @@ export default abstract class RenderedObject implements IRenderedObject {
 
   public abstract get source(): CanvasImageSource;
   public abstract get sourceURL(): string;
-  public abstract get sourceBoundingRect(): ISourceBoundingRect;
+  public abstract get sourceBoundingRect(): IBoundingRect;
 
   public get meta(): IRenderedObjectMeta {
     return {
@@ -37,8 +47,16 @@ export default abstract class RenderedObject implements IRenderedObject {
     };
   }
 
-  constructor(options: IRenderedObjectOptions) {
+  public applyOptions(options: IRenderedObjectOptions) {
     if (options.id != null) this._id = options.id;
     else this._id = uuid();
+  }
+
+  public applyMeta(meta: IRenderedObjectMeta) {
+    this._id = meta.id;
+  }
+
+  public async init(): Promise<void> {
+    return null;
   }
 }

@@ -1,24 +1,58 @@
-import Canvas from '.';
+import Canvas from './Canvas';
 
-import SelectableCanvasMixin from './mixins/selectableCanvas';
-import ResizeableCanvasMixin from './mixins/resizeableCanvas';
-import TileableCanvasMixin from './mixins/tileableCanvas';
-import DrawableCanvasMixin from './mixins/drawableCanvas';
+// eslint-disable-next-line max-len
+import SelectableCanvasMixin, { ISelectableCanvas, ISelectableCanvasProtected, SelectableCanvasOptions } from './mixins/selectableCanvas';
+// eslint-disable-next-line max-len
+import ResizeableCanvasMixin, { IResizeableCanvas, IResizeableCanvasProtected, ResizeableCanvasOptions } from './mixins/resizeableCanvas';
+// eslint-disable-next-line max-len
+import TileableCanvasMixin, { ITileableCanvas, ITileableCanvasProtected, TileableCanvasOptions } from './mixins/tileableCanvas/tileableCanvas';
+// eslint-disable-next-line max-len
+import HoverableTileCanvasMixin, { IHoverableTileCanvas, IHoverableTileCanvasProtected, HoverableTileCanvasOptions } from './mixins/hoverableTileCanvas';
+// eslint-disable-next-line max-len
+import DrawableCanvasMixin, { IDrawableCanvas, IDrawableCanvasProtected, DrawableCanvasOptions } from './mixins/drawableCanvas';
+// eslint-disable-next-line max-len
+import SavableCanvasMixin, { ISavableCanvas, ISavableCanvasProtected, SavableCanvasOptions } from './mixins/savableCanvas';
 
-const MIXINS: Hash = {
+export {
+  Canvas,
+  ISelectableCanvas,
+  IResizeableCanvas,
+  ITileableCanvas,
+  IHoverableTileCanvas,
+  IDrawableCanvas,
+  ISavableCanvas,
+  ISelectableCanvasProtected,
+  IResizeableCanvasProtected,
+  ITileableCanvasProtected,
+  IHoverableTileCanvasProtected,
+  IDrawableCanvasProtected,
+  ISavableCanvasProtected,
+  SelectableCanvasOptions,
+  ResizeableCanvasOptions,
+  TileableCanvasOptions,
+  HoverableTileCanvasOptions,
+  DrawableCanvasOptions,
+  SavableCanvasOptions,
+};
+
+const MIXINS: Hash<any> = {
   selectable: SelectableCanvasMixin,
   resizable: ResizeableCanvasMixin,
   tileable: TileableCanvasMixin,
+  hoverable: HoverableTileCanvasMixin,
   drawable: DrawableCanvasMixin,
+  savable: SavableCanvasMixin,
 };
 
 export default class CanvasClassBuilder {
-  private _class: any = Canvas;
-  private _mixins: any = {
+  private _class = Canvas;
+  private _mixins: Hash<boolean> = {
     selectable: false,
     resizable: false,
     tileable: false,
+    hoverable: false,
     drawable: false,
+    savable: false,
   };
 
   applySelectableMixin() {
@@ -36,8 +70,18 @@ export default class CanvasClassBuilder {
     return this;
   }
 
+  applyHoverableMixin() {
+    this._mixins.hoverable = true;
+    return this;
+  }
+
   applyDrawableMixin() {
     this._mixins.drawable = true;
+    return this;
+  }
+
+  applySavableMixin() {
+    this._mixins.savable = true;
     return this;
   }
 

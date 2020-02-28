@@ -78,7 +78,7 @@ import {
 } from 'vue-property-decorator';
 import { State, Getter, Mutation } from 'vuex-class';
 
-import GameObjectCanvas from '@/lib/core/RenderedObject/GameObject/Canvas';
+import GameObjectCanvas from '@/lib/core/RenderedObject/Sprite/GameObjectCanvas';
 
 import Tile from '@/lib/core/RenderedObject/Tile';
 import Point from '@/lib/core/utils/classes/Point';
@@ -110,12 +110,6 @@ export default class GameObjectEditor extends Vue {
 
   private name: string = '';
 
-  constructor(...args: any[]) {
-    super(...args);
-
-    this.onHitBoxesUpdated = this.onHitBoxesUpdated.bind(this);
-  }
-
   mounted() {
     this.init();
     this.getListGameObjects();
@@ -123,7 +117,7 @@ export default class GameObjectEditor extends Vue {
 
   async init() {
     this.gameObjectCanvas = await GameObjectCanvas.create({
-      el: this.$refs.canvas,
+      el: this.$refs.canvas as HTMLCanvasElement,
       metadataUrl: this.metadataUrl,
       size: {
         width: this.tileMapX,
@@ -133,14 +127,14 @@ export default class GameObjectEditor extends Vue {
 
     this.tileMapX = this.gameObjectCanvas.width;
     this.tileMapY = this.gameObjectCanvas.height;
-    this.name = this.gameObjectCanvas.gameObjectName;
+    this.name = this.gameObjectCanvas.spriteName;
 
-    this.gameObjectCanvas.addEventListener(':hitBoxsUpdated', this.onHitBoxesUpdated);
+    this.gameObjectCanvas.on(':hitBoxsUpdated', this.onHitBoxesUpdated, this);
   }
 
   @Watch('name')
   private onNameChange(name: string) {
-    this.gameObjectCanvas.gameObjectName = name;
+    this.gameObjectCanvas.spriteName = name;
   }
 
   @Watch('tiles')
@@ -170,7 +164,7 @@ export default class GameObjectEditor extends Vue {
     }
     this.gameObjectCanvas.updateCache(canvas);
 
-    this.gameObjectCanvas.dispatchEvent(new Event(':renderRequest'));
+    this.gameObjectCanvas.emit(':renderRequest');
   }
 
   private onHitBoxesUpdated({ hitBoxes }: any) {
@@ -178,11 +172,11 @@ export default class GameObjectEditor extends Vue {
   }
 
   private rerender() {
-    this.gameObjectCanvas.dispatchEvent(new Event(':renderRequest'));
+    this.gameObjectCanvas.emit(':renderRequest');
   }
 
   clear() {
-    this.gameObjectCanvas.clearGameObject();
+    this.gameObjectCanvas.clearSprite();
   }
 
   getListGameObjects() {

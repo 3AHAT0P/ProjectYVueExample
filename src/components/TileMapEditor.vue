@@ -83,7 +83,7 @@ import {
   ZERO_LAYER,
   FOREGROUND_LAYER,
   LAYER_INDEX,
-} from '@/lib/core/Canvas/mixins/tileableCanvas';
+} from '@/lib/core/Canvas/mixins/tileableCanvas/constants';
 
 import Point from '@/lib/core/utils/classes/Point';
 import Tile from '@/lib/core/RenderedObject/Tile';
@@ -99,7 +99,7 @@ export default class TileMapEditor extends Vue {
 
   private blockName: string = 'tile-map-editor';
 
-  private mainTileMap: any = null;
+  private mainTileMap: TileMap = null;
   private metadataUrl: string = `${BASE_URL}tilemaps/tilemap.json`;
 
   private levelsENUM: any = null;
@@ -129,7 +129,7 @@ export default class TileMapEditor extends Vue {
 
   async init() {
     this.mainTileMap = await TileMap.create({
-      el: this.$refs.canvas,
+      el: this.$refs.canvas as HTMLCanvasElement,
       metadataUrl: this.metadataUrl,
       size: {
         width: this.tileMapX,
@@ -140,7 +140,7 @@ export default class TileMapEditor extends Vue {
     this.tileMapX = this.mainTileMap.sizeInTiles.x;
     this.tileMapY = this.mainTileMap.sizeInTiles.y;
 
-    this.mainTileMap.addEventListener(':multiSelect', this.onMultiSelect);
+    this.mainTileMap.on(':multiSelect', this.onMultiSelect);
   }
 
   @Watch('tiles')

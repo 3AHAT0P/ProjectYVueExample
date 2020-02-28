@@ -33,14 +33,21 @@ export default class Point implements IPoint {
   private _y: number = 0;
 
   public get x() { return this._x; }
-  public set x(value: number) { throw new Error('It\'s property read only!'); }
-
   public get y() { return this._y; }
-  public set y(value: number) { throw new Error('It\'s property read only!'); }
 
   constructor(x: number, y: number) {
     this._x = x;
     this._y = y;
+  }
+
+  public updateCoordinates(x: number, y: number) {
+    this._x = x;
+    this._y = y;
+  }
+
+  public increaseCoordinate(coordinate: 'X' | 'Y', value: number) {
+    if (coordinate === 'X') this._x += value;
+    if (coordinate === 'Y') this._y += value;
   }
 
   public toString() {
@@ -51,7 +58,7 @@ export default class Point implements IPoint {
     return `${this.y}${DELIMITER}${this.x}`;
   }
 
-  public toArray() {
+  public toArray(): [number, number] {
     return [this.x, this.y];
   }
 

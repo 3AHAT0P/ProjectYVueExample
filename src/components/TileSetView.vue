@@ -36,12 +36,6 @@ export default class TileSetView extends Vue {
   private mainTileSet: any = null;
   private internalImageUrl: string = `${BASE_URL}tilesets/main-tile-set.png`;
 
-  constructor(...args: any) {
-    super(...args);
-
-    this.onMultiSelect = this.onMultiSelect.bind(this);
-  }
-
   created() {
     if (this.imageUrl != null) this.internalImageUrl = this.imageUrl;
   }
@@ -56,11 +50,11 @@ export default class TileSetView extends Vue {
 
   async init() {
     this.mainTileSet = await TileSet.create({
-      el: this.$refs.canvas,
+      el: this.$refs.canvas as HTMLCanvasElement,
       imageUrl: this.internalImageUrl,
     });
 
-    this.mainTileSet.addEventListener(':multiSelect', this.onMultiSelect);
+    this.mainTileSet.on(':multiSelect', this.onMultiSelect, this);
   }
 
   async load() {
