@@ -22,6 +22,8 @@ export class Layer extends Map<string, IRenderedObject> {
     this._cache.clear();
     for (const [key, renderedObject] of this.entries()) {
       // eslint-disable-next-line no-continue
+      if (!renderedObject) continue;
+      // eslint-disable-next-line no-continue
       if (conditionCallback && !conditionCallback(renderedObject)) continue;
       const [x, y] = this.parseKey(key);
       const tileBoundingRect = renderedObject.sourceBoundingRect;
