@@ -17,6 +17,10 @@ export interface ISpriteMeta extends IRenderedObjectMeta {
   version: string;
 }
 
+const DEBUG = {
+  DRAW_HITBOXES: false,
+};
+
 export default class Sprite extends RenderedObject implements IRenderedObject {
   public static version = '0.1.0';
 
@@ -76,13 +80,15 @@ export default class Sprite extends RenderedObject implements IRenderedObject {
     if (this._sourceURL == null) return;
     await this._source.fromURL(this._sourceURL, true);
 
-    const hitBox = this.hitBoxes[0];
-    await this._source.ctx.strokeRect(
-      hitBox.from.x,
-      hitBox.from.y,
-      hitBox.to.x - hitBox.from.x,
-      hitBox.to.y - hitBox.from.y,
-    );
+    if (DEBUG.DRAW_HITBOXES) {
+      const hitBox = this.hitBoxes[0];
+      await this._source.ctx.strokeRect(
+        hitBox.from.x,
+        hitBox.from.y,
+        hitBox.to.x - hitBox.from.x,
+        hitBox.to.y - hitBox.from.y,
+      );
+    }
   }
 
   public applyOptions(options: ISpriteOptions) {
